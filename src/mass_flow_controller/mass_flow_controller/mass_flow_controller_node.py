@@ -50,11 +50,7 @@ class MassFlowControllerNode(Node):
                 self.sensor.set_setpoint(flow_rate)
                 self.get_logger().info(f"Set flow rate to {flow_rate} L/min")
             except ShdlcDeviceError as e:
-                if e.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
-                    self.get_logger().error("Valve was closed due to overheating protection. Flow rate set to 0.0 L/min")
-                    self.sensor.set_setpoint(0.0)
-                else:
-                    self.get_logger().error(f"Device error: {e}")
+                self.handle_overheating_error(e)
             except Exception as e:
                 self.get_logger().error(f"Failed to set flow rate: {e}")
         else:
@@ -64,14 +60,21 @@ class MassFlowControllerNode(Node):
         try:
             measured_value = self.sensor.read_averaged_measured_value(50)
             self.flow_rate_publisher.publish(Float32(data=measured_value))
-            #self.get_logger().info(f"Published measured flow rate: {measured_value} L/min")
         except ShdlcDeviceError as e:
-            if e.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
-                self.get_logger().error("Valve was closed due to overheating protection.")
-            else:
-                self.get_logger().error(f"Device error: {e}")
+            self.handle_overheating_error(e)
         except Exception as e:
             self.get_logger().error(f"Failed to read measured flow rate: {e}")
+
+    def handle_overheating_error(self, error):
+        if error.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
+            self.get_logger().error("Valve was closed due to overheating protection. Switching to 0.0 L/min.")
+            try:
+                self.sensor.set_setpoint(0.0)  # Set airflow to 0.0 L/min
+                self.get_logger().info("Flow rate set to 0.0 L/min due to overheating.")
+            except Exception as e:
+                self.get_logger().error(f"Failed to reset flow rate after overheating: {e}")
+        else:
+            self.get_logger().error(f"Device error: {error}")
 
     def destroy_node(self):
         try:
