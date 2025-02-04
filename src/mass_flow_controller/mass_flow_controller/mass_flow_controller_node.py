@@ -12,6 +12,7 @@ class MassFlowControllerNode(Node):
         super().__init__('mass_flow_controller_node')
         self.declare_parameter('serial_port', '/dev/ttyUSB0')  # Update with your port
         self.serial_port = self.get_parameter('serial_port').get_parameter_value().string_value
+        self.overheating_flag = False  # New flag to prevent repeated resetting
 
         # Initialize the mass flow controller
         self.get_logger().info("Initializing the mass flow controller...")
@@ -48,6 +49,7 @@ class MassFlowControllerNode(Node):
         if 0.0 <= flow_rate <= 20.0:
             try:
                 self.sensor.set_setpoint(flow_rate)
+                self.overheating_flag = False  # Reset flag when new flow rate is successfully set
                 self.get_logger().info(f"Set flow rate to {flow_rate} L/min")
             except ShdlcDeviceError as e:
                 self.handle_overheating_error(e)
@@ -67,12 +69,14 @@ class MassFlowControllerNode(Node):
 
     def handle_overheating_error(self, error):
         if error.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
-            self.get_logger().error("Valve was closed due to overheating protection. Switching to 0.0 L/min.")
-            try:
-                self.sensor.set_setpoint(0.0)  # Set airflow to 0.0 L/min
-                self.get_logger().info("Flow rate set to 0.0 L/min due to overheating.")
-            except Exception as e:
-                self.get_logger().error(f"Failed to reset flow rate after overheating: {e}")
+            if not self.overheating_flag:  # Only handle overheating once
+                self.get_logger().error("Valve was closed due to overheating protection. Switching to 0.0 L/min.")
+                try:
+                    self.sensor.set_setpoint(0.0)  # Set airflow to 0.0 L/min
+                    self.overheating_flag = True  # Set flag to avoid repeated resets
+                    self.get_logger().info("Flow rate set to 0.0 L/min due to overheating.")
+                except Exception as e:
+                    self.get_logger().error(f"Failed to reset flow rate after overheating: {e}")
         else:
             self.get_logger().error(f"Device error: {error}")
 
