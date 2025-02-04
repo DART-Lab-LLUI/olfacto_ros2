@@ -51,7 +51,8 @@ class MassFlowControllerNode(Node):
                 self.get_logger().info(f"Set flow rate to {flow_rate} L/min")
             except ShdlcDeviceError as e:
                 if e.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
-                    self.get_logger().error("Valve was closed due to overheating protection.")
+                    self.get_logger().error("Valve was closed due to overheating protection. Flow rate set to 0.0 L/min")
+                    self.sensor.set_setpoint(0.0)
                 else:
                     self.get_logger().error(f"Device error: {e}")
             except Exception as e:
