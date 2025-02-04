@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'valve_controller = valve_control.valve_controller:main',
+	    'keyboard_controller = valve_control.keyboard_controller:main'
         ],
     },
 )
