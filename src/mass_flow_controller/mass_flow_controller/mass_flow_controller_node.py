@@ -10,93 +10,103 @@ from sensirion_uart_sfx6xxx.commands import StatusCode
 class MassFlowControllerNode(Node):
     def __init__(self):
         super().__init__('mass_flow_controller_node')
-        self.declare_parameter('serial_port', '/dev/ttyUSB0')  # Update with your port
+        self.declare_parameter('serial_port', '/dev/ttyUSB0')  # Set correct port
         self.serial_port = self.get_parameter('serial_port').get_parameter_value().string_value
-        self.overheating_flag = False  # Flag to track overheating
+        self.overheating_flags = {0: False, 1: False}  # Track overheating per MFC
 
-        # Initialize the mass flow controller
-        self.initialize_controller()
+        # Initialize Mass Flow Controllers
+        self.initialize_controllers()
 
-        # Subscriber for setting the flow rate
-        self.subscription = self.create_subscription(
-            Float32,
-            'set_flow_rate',
-            self.listener_callback,
-            10
-        )
-        self.subscription  # Prevent unused variable warning
+        # Create subscribers for each MFC
+        self.subscriptions = {}
+        for i in range(2):
+            topic_name = f'mfc{i}/set_flow_rate'
+            self.subscriptions[i] = self.create_subscription(
+                Float32, topic_name, lambda msg, index=i: self.listener_callback(msg, index), 10
+            )
 
-        # Publisher for outputting measured flow rate
-        self.flow_rate_publisher = self.create_publisher(Float32, 'measured_flow_rate', 10)
+        # Create publishers for each MFC
+        self.flow_rate_publishers = {
+            i: self.create_publisher(Float32, f'mfc{i}/measured_flow_rate', 10) for i in range(2)
+        }
 
-        # Timer for publishing measured flow rate
-        self.timer = self.create_timer(0.5, self.publish_measured_flow_rate)
+        # Timer to periodically read and publish flow rates
+        self.timer = self.create_timer(0.5, self.publish_measured_flow_rates)
 
         self.get_logger().info("Mass flow controller node initialized and ready to operate.")
 
-    def initialize_controller(self):
-        """Initialize or reset the mass flow controller."""
+    def initialize_controllers(self):
+        """Initialize the mass flow controllers."""
         try:
             self.port = ShdlcSerialPort(port=self.serial_port, baudrate=115200)
-            self.channel = ShdlcChannel(self.port)
-            self.sensor = Sfx6xxxDevice(self.channel)
-            self.sensor.device_reset()
-            self.get_logger().info("Mass flow controller initialized successfully.")
+            self.sensors = {
+                i: Sfx6xxxDevice(ShdlcChannel(self.port, shdlc_address=i)) for i in range(2)
+            }
+            for i in range(2):
+                self.sensors[i].device_reset()
+            self.get_logger().info("All Mass Flow Controllers initialized successfully.")
         except Exception as e:
-            self.get_logger().error(f"Failed to initialize the mass flow controller: {e}")
+            self.get_logger().error(f"Failed to initialize Mass Flow Controllers: {e}")
             raise
 
-    def listener_callback(self, msg):
+    def listener_callback(self, msg, mfc_index):
+        """Handles incoming flow rate commands for each MFC."""
         flow_rate = msg.data
-        self.get_logger().info(f"Received flow rate command: {flow_rate} L/min")
+        self.get_logger().info(f"Received flow rate command for MFC {mfc_index}: {flow_rate} L/min")
 
         if 0.0 <= flow_rate <= 20.0:
             try:
-                self.sensor.set_setpoint(flow_rate)
-                self.overheating_flag = False  # Reset flag if successful
-                self.get_logger().info(f"Set flow rate to {flow_rate} L/min")
+                self.sensors[mfc_index].set_setpoint(flow_rate)
+                self.overheating_flags[mfc_index] = False  # Reset overheating flag if successful
+                self.get_logger().info(f"Set flow rate for MFC {mfc_index} to {flow_rate} L/min")
             except ShdlcDeviceError as e:
-                self.handle_overheating_error(e)
+                self.handle_overheating_error(e, mfc_index)
             except Exception as e:
-                self.get_logger().error(f"Failed to set flow rate: {e}")
+                self.get_logger().error(f"Failed to set flow rate for MFC {mfc_index}: {e}")
         else:
-            self.get_logger().error("Flow rate out of range (0-20 L/min). Command ignored.")
+            self.get_logger().error(f"Flow rate out of range (0-20 L/min) for MFC {mfc_index}. Command ignored.")
 
-    def publish_measured_flow_rate(self):
-        try:
-            measured_value = self.sensor.read_averaged_measured_value(50)
-            self.flow_rate_publisher.publish(Float32(data=measured_value))
-        except ShdlcDeviceError as e:
-            self.handle_overheating_error(e)
-        except Exception as e:
-            self.get_logger().error(f"Failed to read measured flow rate: {e}")
+    def publish_measured_flow_rates(self):
+        """Publishes the measured flow rates of all MFCs."""
+        for i in range(2):
+            try:
+                measured_value = self.sensors[i].read_averaged_measured_value(50)
+                self.flow_rate_publishers[i].publish(Float32(data=measured_value))
+            except ShdlcDeviceError as e:
+                self.handle_overheating_error(e, i)
+            except Exception as e:
+                self.get_logger().error(f"Failed to read measured flow rate for MFC {i}: {e}")
 
-    def handle_overheating_error(self, error):
+    def handle_overheating_error(self, error, mfc_index):
+        """Handles overheating errors for a specific MFC."""
         if error.error_code == StatusCode.SENSOR_MEASURE_LOOP_NOT_RUNNING_ERROR.value:
-            if not self.overheating_flag:  # Handle overheating only once
-                self.get_logger().error("Valve was closed due to overheating protection. Resetting the controller.")
-                self.reset_controller()
+            if not self.overheating_flags[mfc_index]:  # Handle overheating only once
+                self.get_logger().error(f"MFC {mfc_index}: Valve closed due to overheating. Resetting controller.")
+                self.reset_controller(mfc_index)
         else:
-            self.get_logger().error(f"Device error: {error}")
+            self.get_logger().error(f"Device error for MFC {mfc_index}: {error}")
 
-    def reset_controller(self):
-        """Reset the mass flow controller after an overheating error."""
+    def reset_controller(self, mfc_index):
+        """Resets a specific MFC after an overheating error."""
         try:
-            self.sensor.close_valve()
-            self.port.close()
-            self.get_logger().info("Closed valve and communication port. Reinitializing the controller...")
-            self.initialize_controller()
-            self.overheating_flag = True  # Prevent repeated resets
+            self.sensors[mfc_index].close_valve()
+            self.get_logger().info(f"Closed valve for MFC {mfc_index}. Reinitializing...")
+            self.sensors[mfc_index] = Sfx6xxxDevice(ShdlcChannel(self.port, shdlc_address=mfc_index))
+            self.sensors[mfc_index].device_reset()
+            self.overheating_flags[mfc_index] = True  # Prevent repeated resets
+            self.get_logger().info(f"MFC {mfc_index} reinitialized successfully.")
         except Exception as e:
-            self.get_logger().error(f"Failed to reset the controller: {e}")
+            self.get_logger().error(f"Failed to reset MFC {mfc_index}: {e}")
 
     def destroy_node(self):
+        """Shutdown sequence for all MFCs."""
         try:
-            self.sensor.close_valve()
+            for i in range(2):
+                self.sensors[i].close_valve()
             self.port.close()
-            self.get_logger().info("Mass flow controller shut down successfully.")
+            self.get_logger().info("All Mass Flow Controllers shut down successfully.")
         except Exception as e:
-            self.get_logger().error(f"Error shutting down mass flow controller: {e}")
+            self.get_logger().error(f"Error shutting down controllers: {e}")
         super().destroy_node()
 
 
