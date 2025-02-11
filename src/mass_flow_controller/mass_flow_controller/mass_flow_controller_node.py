@@ -18,12 +18,9 @@ class MassFlowControllerNode(Node):
         self.initialize_controllers()
 
         # Create subscribers for each MFC
-        self.subscriptions = {}
         for i in range(2):
             topic_name = f'mfc{i}/set_flow_rate'
-            self.subscriptions[i] = self.create_subscription(
-                Float32, topic_name, lambda msg, index=i: self.listener_callback(msg, index), 10
-            )
+            self.create_subscription(Float32, topic_name, lambda msg, index=i: self.listener_callback(msg, index), 10)
 
         # Create publishers for each MFC
         self.flow_rate_publishers = {
