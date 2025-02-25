@@ -10,7 +10,7 @@ from sensirion_uart_sfx6xxx.commands import StatusCode
 class MassFlowControllerNode(Node):
     def __init__(self):
         super().__init__('mass_flow_controller_node')
-        self.declare_parameter('serial_port', '/dev/ttyUSB0')  # Set correct port
+        self.declare_parameter('serial_port', '/dev/mfc')  # Set correct port
         self.serial_port = self.get_parameter('serial_port').get_parameter_value().string_value
         self.overheating_flags = {0: False, 1: False}  # Track overheating per MFC
 

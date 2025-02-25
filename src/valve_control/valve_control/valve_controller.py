@@ -12,9 +12,9 @@ class ValveController(Node):
         
         # Setup serial connection to Arduino
         try:
-            self.arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=1)  # Change this to the correct port if necessary
+            self.arduino = serial.Serial('/dev/arduino_valve', 9600, timeout=1)  # Change this to the correct port if necessary
             time.sleep(2)  # Wait for the connection to initialize
-            self.get_logger().info('Connected to Arduino on /dev/ttyACM0')
+            self.get_logger().info('Connected to Arduino on /dev/arduino_valve')
         except Exception as e:
             self.get_logger().error(f'Failed to connect to Arduino: {e}')
             raise e

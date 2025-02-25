@@ -9,7 +9,7 @@ class SensorPublisher(Node):
         super().__init__('sensor_publisher')
 
         # Initialize serial connection to Arduino
-        self.ser = serial.Serial('/dev/ttyUSB1', 115200, timeout=0.1)  # Change if needed
+        self.ser = serial.Serial('/dev/arduino_sensor', 115200, timeout=0.1)  # Change if needed
 
         # Publishers for each sensor
         self.pub_hot_junction_1 = self.create_publisher(Float32, 'hot_junction_1', 10)
