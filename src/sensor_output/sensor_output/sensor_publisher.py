@@ -45,7 +45,7 @@ class SensorPublisher(Node):
             self.pub_hot_junction_2.publish(Float32(data=hot2))
             self.pub_cold_junction_2.publish(Float32(data=cold2))
 
-            self.get_logger().info(f'Published: Hot1={hot1} Cold1={cold1} Hot2={hot2} Cold2={cold2}')
+            #self.get_logger().info(f'Published: Hot1={hot1} Cold1={cold1} Hot2={hot2} Cold2={cold2}')
 
     def publish_humidity(self):
         """ Reads and publishes humidity sensor data """
@@ -54,7 +54,7 @@ class SensorPublisher(Node):
             _, _, _, _, _, humidity = data  # Only take humidity
 
             self.pub_humidity.publish(Float32(data=humidity))
-            self.get_logger().info(f'Published: Humidity={humidity} %RH')
+            #self.get_logger().info(f'Published: Humidity={humidity} %RH')
 
 def main(args=None):
     rclpy.init(args=args)
