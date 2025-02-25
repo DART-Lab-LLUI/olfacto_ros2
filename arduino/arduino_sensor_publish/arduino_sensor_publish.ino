@@ -1,3 +1,5 @@
+// For Arduino Nano with Tools > Processor > ATmega328P (Old Bootloader)
+
 #include <Wire.h>
 #include "Adafruit_MCP9600.h"
 
@@ -14,7 +16,7 @@ const float temperature = 17.3;    // Temperature in C
 void setup() {
     Serial.begin(115200);
     Wire.begin();
-    Wire.setClock(400000);  // Increase I2C speed to 400 kHz
+    Wire.setClock(100000);  // Increase I2C speed to 400 kHz
 
     // Initialize first MCP9600 at address 0x67
     if (!mcp1.begin(0x67)) {
@@ -34,8 +36,8 @@ void setup() {
     mcp1.setThermocoupleType(MCP9600_TYPE_K);
     mcp2.setThermocoupleType(MCP9600_TYPE_K);
     
-    mcp1.setADCresolution(MCP9600_ADCRESOLUTION_12);
-    mcp2.setADCresolution(MCP9600_ADCRESOLUTION_12);
+    mcp1.setADCresolution(MCP9600_ADCRESOLUTION_14);
+    mcp2.setADCresolution(MCP9600_ADCRESOLUTION_14);
 }
 
 void loop() {
