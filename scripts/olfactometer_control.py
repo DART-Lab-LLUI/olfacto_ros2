@@ -26,21 +26,18 @@ class OlfactometerController(Node):
                 self.get_logger().error("Invalid ratio. Must be between 0 and 1.")
                 return
 
-            # If another valve is open, close it first
-            if self.current_valve is not None and self.current_valve != valve_number:
-                self.close_valve(self.current_valve)
-
             # Calculate flow rates
             total_flow = 8.0  # Total flow in LPM
             flow_mfc0 = total_flow * ratio
             flow_mfc1 = total_flow * (1 - ratio)
 
             # Open new valve
-            valve_msg = String()
-            valve_msg.data = f"{valve_number}:ON"
-            self.valve_publisher.publish(valve_msg)
-            self.get_logger().info(f"Opened valve {valve_number}")
-            self.current_valve = valve_number  # Update the currently open valve
+            self.open_valve(valve_number)
+            # If another valve is open, close it after
+            if self.current_valve is not None and self.current_valve != valve_number:
+                self.close_valve(self.current_valve)
+            # Update the currently open valve
+            self.current_valve = valve_number  
 
             # Publish flow rates
             self.mfc0_publisher.publish(Float32(data=flow_mfc0))
@@ -51,11 +48,19 @@ class OlfactometerController(Node):
             self.get_logger().error("Invalid input format. Use 'valve_number:ratio' (e.g., '1:0.5').")
 
     def close_valve(self, valve_number):
-        """ Closes the currently open valve. """
+        """ Send close valve command to arduino """
         valve_msg = String()
         valve_msg.data = f"{valve_number}:OFF"
         self.valve_publisher.publish(valve_msg)
         self.get_logger().info(f"Closed valve {valve_number}")
+
+    def open_valve(self, valve_number):
+        """ Send open valve command to arduino """
+        valve_msg = String()
+        valve_msg.data = f"{valve_number}:ON"
+        self.valve_publisher.publish(valve_msg)
+        self.get_logger().info(f"Opened valve {valve_number}")
+
 
     def reset_mfcs(self):
         """ Sets both MFCs to 0 LPM. """
