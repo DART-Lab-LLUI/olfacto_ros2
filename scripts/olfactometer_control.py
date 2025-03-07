@@ -1,4 +1,5 @@
 import rclpy
+import time
 from rclpy.node import Node
 from std_msgs.msg import String, Float32
 
@@ -36,8 +37,8 @@ class OlfactometerController(Node):
             self.open_valve(valve_number)
             # If another valve is open, close it after
             if self.current_valve is not None and self.current_valve != valve_number:
-                prev_valve = self.current_valve  # Capture the valve number
-                self.create_timer(self.delay_time, lambda: self.close_valve(prev_valve))
+                time.sleep(0.2)
+                self.close_valve(self.current_valve)
             # Update the currently open valve
             self.current_valve = valve_number  
 
