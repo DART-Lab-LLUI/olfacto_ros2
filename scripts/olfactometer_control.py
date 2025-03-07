@@ -9,6 +9,7 @@ class OlfactometerController(Node):
         self.mfc0_publisher = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
         self.mfc1_publisher = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
         self.current_valve = None  # Track the currently open valve
+        self.delay_time = 0.2  # Delay before closing the previous valve (in seconds)
 
         self.get_logger().info("Olfactometer Controller initialized. Type 'valve_number:ratio' (e.g., '1:0.5') to control.")
 
@@ -35,7 +36,8 @@ class OlfactometerController(Node):
             self.open_valve(valve_number)
             # If another valve is open, close it after
             if self.current_valve is not None and self.current_valve != valve_number:
-                self.close_valve(self.current_valve)
+                # self.close_valve(self.current_valve)
+                self.create_timer(self.delay_time, lambda: self.close_valve(self.current_valve))
             # Update the currently open valve
             self.current_valve = valve_number  
 
