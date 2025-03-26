@@ -12,19 +12,19 @@ class MassFlowControllerNode(Node):
         super().__init__('mass_flow_controller_node')
         self.declare_parameter('serial_port', '/dev/mfc')  # Set correct port
         self.serial_port = self.get_parameter('serial_port').get_parameter_value().string_value
-        self.overheating_flags = {0: False, 1: False}  # Track overheating per MFC
+        self.overheating_flags = {0: False, 1: False, 2:False}  # Track overheating per MFC
 
         # Initialize Mass Flow Controllers
         self.initialize_controllers()
 
         # Create subscribers for each MFC
-        for i in range(2):
+        for i in range(3):
             topic_name = f'mfc{i}/set_flow_rate'
             self.create_subscription(Float32, topic_name, lambda msg, index=i: self.listener_callback(msg, index), 10)
 
         # Create publishers for each MFC
         self.flow_rate_publishers = {
-            i: self.create_publisher(Float32, f'mfc{i}/measured_flow_rate', 10) for i in range(2)
+            i: self.create_publisher(Float32, f'mfc{i}/measured_flow_rate', 10) for i in range(3)
         }
 
         # Timer to periodically read and publish flow rates
@@ -37,9 +37,9 @@ class MassFlowControllerNode(Node):
         try:
             self.port = ShdlcSerialPort(port=self.serial_port, baudrate=115200)
             self.sensors = {
-                i: Sfx6xxxDevice(ShdlcChannel(self.port, shdlc_address=i)) for i in range(2)
+                i: Sfx6xxxDevice(ShdlcChannel(self.port, shdlc_address=i)) for i in range(3)
             }
-            for i in range(2):
+            for i in range(3):
                 self.sensors[i].device_reset()
             self.get_logger().info("All Mass Flow Controllers initialized successfully.")
         except Exception as e:
@@ -65,7 +65,7 @@ class MassFlowControllerNode(Node):
 
     def publish_measured_flow_rates(self):
         """Publishes the measured flow rates of all MFCs."""
-        for i in range(2):
+        for i in range(3):
             try:
                 measured_value = self.sensors[i].read_averaged_measured_value(50)
                 self.flow_rate_publishers[i].publish(Float32(data=measured_value))
@@ -98,7 +98,7 @@ class MassFlowControllerNode(Node):
     def destroy_node(self):
         """Shutdown sequence for all MFCs."""
         try:
-            for i in range(2):
+            for i in range(3):
                 self.sensors[i].close_valve()
             self.port.close()
             self.get_logger().info("All Mass Flow Controllers shut down successfully.")
