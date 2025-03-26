@@ -67,7 +67,8 @@ class MassFlowControllerNode(Node):
         """Publishes the measured flow rates of all MFCs."""
         for i in range(3):
             try:
-                measured_value = self.sensors[i].read_averaged_measured_value(50)
+                #measured_value = self.sensors[i].read_averaged_measured_value(50)
+                measured_value = self.sensors[i].read_measured_value()
                 self.flow_rate_publishers[i].publish(Float32(data=measured_value))
             except ShdlcDeviceError as e:
                 self.handle_overheating_error(e, i)
