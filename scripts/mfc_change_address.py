@@ -2,8 +2,8 @@ from sensirion_shdlc_driver import ShdlcSerialPort
 from sensirion_driver_adapters.shdlc_adapter.shdlc_channel import ShdlcChannel
 from sensirion_uart_sfx6xxx.device import Sfx6xxxDevice
 
-initial_address = 2
-slave_address = 0
+initial_address = 0
+slave_address = 2
 
 with ShdlcSerialPort(port='/dev/ttyUSB0', baudrate=115200) as port:
     channel = ShdlcChannel(port, shdlc_address=initial_address)
