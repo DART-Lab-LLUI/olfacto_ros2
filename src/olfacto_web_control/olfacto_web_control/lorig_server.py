@@ -11,7 +11,9 @@ import time
 class StimulusRequest(BaseModel):
     valve: int
     ratio: float
-    duration: float  # Duration in seconds
+    duration: float
+    total_flow: float
+
 
 # --- Combined ROS Node + Web API ---
 class OlfactometerController(Node):
@@ -25,15 +27,17 @@ class OlfactometerController(Node):
 
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
-    def trigger_stimulus(self, valve, ratio, duration):
+    def trigger_stimulus(self, valve, ratio, duration, total_flow):
         if valve < 1 or valve > 16:
-            self.get_logger().error("Invalid valve number. Must be between 1 and 16.")
+            self.get_logger().error("Invalid valve number.")
             return {"status": "error", "message": "Invalid valve number"}
         if not (0.0 <= ratio <= 1.0):
-            self.get_logger().error("Invalid ratio. Must be between 0 and 1.")
+            self.get_logger().error("Invalid ratio.")
             return {"status": "error", "message": "Invalid ratio"}
+        if total_flow < 0.0 or total_flow > 20.0:
+            self.get_logger().error("Invalid total flow rate.")
+            return {"status": "error", "message": "Total flow must be between 0.0 and 20.0 LPM"}
 
-        total_flow = 8.0
         flow_mfc0 = total_flow * ratio
         flow_mfc1 = total_flow * (1 - ratio)
 
@@ -47,10 +51,9 @@ class OlfactometerController(Node):
         self.mfc1_publisher.publish(Float32(data=flow_mfc1))
         self.get_logger().info(f"Set MFC0 to {flow_mfc0} LPM, MFC1 to {flow_mfc1} LPM")
 
-        # Schedule closing after duration
         threading.Thread(target=self._close_after_delay, args=(valve, duration), daemon=True).start()
-
         return {"status": "success"}
+
 
     def _close_after_delay(self, valve, delay):
         time.sleep(delay)
@@ -82,7 +85,8 @@ ros_node = None  # We'll assign the ROS node after init
 
 @app.post("/stimulus")
 def stimulus_endpoint(req: StimulusRequest):
-    return ros_node.trigger_stimulus(req.valve, req.ratio, req.duration)
+    return ros_node.trigger_stimulus(req.valve, req.ratio, req.duration, req.total_flow)
+
 
 # --- Main entry point ---
 def main(args=None):
