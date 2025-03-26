@@ -1,4 +1,6 @@
 import rclpy
+import threading
+import time
 from rclpy.node import Node
 from std_msgs.msg import Float32
 from sensirion_shdlc_driver import ShdlcSerialPort
@@ -28,9 +30,20 @@ class MassFlowControllerNode(Node):
         }
 
         # Timer to periodically read and publish flow rates
-        self.timer = self.create_timer(0.01, self.publish_measured_flow_rates)
+        #self.timer = self.create_timer(0.01, self.publish_measured_flow_rates)
+        self.read_thread = threading.Thread(target=self.read_loop, daemon=True)
+        self.read_thread.start()
 
         self.get_logger().info("Mass flow controller node initialized and ready to operate.")
+
+    def read_loop(self):
+        """High-frequency publishing loop in a separate thread (~100 Hz)."""
+        desired_interval = 0.01
+        while rclpy.ok():
+            start_time = time.time()
+            self.publish_measured_flow_rates()
+            elapsed = time.time() - start_time
+            time.sleep(max(0, desired_interval - elapsed))
 
     def initialize_controllers(self):
         """Initialize the mass flow controllers."""
