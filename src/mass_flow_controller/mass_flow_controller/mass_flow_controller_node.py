@@ -28,7 +28,7 @@ class MassFlowControllerNode(Node):
         }
 
         # Timer to periodically read and publish flow rates
-        self.timer = self.create_timer(0.5, self.publish_measured_flow_rates)
+        self.timer = self.create_timer(0.01, self.publish_measured_flow_rates)
 
         self.get_logger().info("Mass flow controller node initialized and ready to operate.")
 
