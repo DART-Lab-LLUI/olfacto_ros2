@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'lorig_server = olfacto_web_control.lorig_server:main',
+            'vacuum_server = olfacto_web_control.vacuum_server:main',
     	],
     },
 )

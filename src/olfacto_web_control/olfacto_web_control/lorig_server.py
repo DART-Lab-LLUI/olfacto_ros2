@@ -18,7 +18,7 @@ class StimulusRequest(BaseModel):
 # --- Combined ROS Node + Web API ---
 class OlfactometerController(Node):
     def __init__(self):
-        super().__init__('olfactometer_controller')
+        super().__init__('olfactometer_controller_lorig')
         self.valve_publisher = self.create_publisher(String, 'control_valve', 10)
         self.mfc0_publisher = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
         self.mfc1_publisher = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
