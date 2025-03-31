@@ -28,8 +28,8 @@ class OlfactometerController(Node):
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
     def trigger_stimulus(self, valve, ratio, duration, total_flow):
-        if valve < 1 or valve > 16:
-            self.get_logger().error("Invalid valve number.")
+        if not (0 <= valve <= 16):
+            self.get_logger().error("Invalid valve number. Must be 0 (no valve) or 1-16.")
             return {"status": "error", "message": "Invalid valve number"}
         if not (0.0 <= ratio <= 1.0):
             self.get_logger().error("Invalid ratio.")
@@ -41,12 +41,20 @@ class OlfactometerController(Node):
         flow_mfc0 = total_flow * ratio
         flow_mfc1 = total_flow * (1 - ratio)
 
-        self.open_valve(valve)
+        # Close previously open valve if different
         if self.current_valve is not None and self.current_valve != valve:
-            time.sleep(self.delay_time)
             self.close_valve(self.current_valve)
-        self.current_valve = valve
+            time.sleep(self.delay_time)
 
+        # Open new valve (unless this is a non-odorant command with valve=0)
+        if valve != 0:
+            self.open_valve(valve)
+            self.current_valve = valve
+        else:
+            self.get_logger().info("No valve selected (clean air flush)")
+            self.current_valve = None
+
+        # Set MFC flow rates
         self.mfc0_publisher.publish(Float32(data=flow_mfc0))
         self.mfc1_publisher.publish(Float32(data=flow_mfc1))
         self.get_logger().info(f"Set MFC0 to {flow_mfc0} LPM, MFC1 to {flow_mfc1} LPM")
@@ -55,12 +63,14 @@ class OlfactometerController(Node):
         return {"status": "success"}
 
 
+
     def _close_after_delay(self, valve, delay):
         time.sleep(delay)
-        if self.current_valve == valve:
+        if self.current_valve == valve and valve != 0:
             self.close_valve(valve)
             self.current_valve = None
-            self.reset_mfcs()
+        self.reset_mfcs()
+
 
     def close_valve(self, valve_number):
         msg = String()
