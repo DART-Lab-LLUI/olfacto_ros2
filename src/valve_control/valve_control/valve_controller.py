@@ -34,7 +34,7 @@ class ValveController(Node):
             valve_number (int): The valve number to control (1-16)
             state (str): "ON" or "OFF"
         """
-        if 1 <= valve_number <= 16:
+        if 1 <= valve_number <= 20:
             command = f'VALVE_{valve_number}_{state}\n'
             try:
                 self.arduino.write(command.encode())
@@ -42,7 +42,7 @@ class ValveController(Node):
             except Exception as e:
                 self.get_logger().error(f'Failed to send command to Arduino: {e}')
         else:
-            self.get_logger().warn("Invalid valve number. Must be between 1 and 16.")
+            self.get_logger().warn("Invalid valve number. Must be between 1 and 20.")
 
     def control_valve_callback(self, msg):
         """

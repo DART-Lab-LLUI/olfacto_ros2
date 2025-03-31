@@ -14,7 +14,7 @@ class KeyboardValveController(Node):
         # Define key mapping for valve numbers
         self.key_map = {
             '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '0': 10,
-            'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15, 'y': 16
+            'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15, 'y': 16, 'u' : 17, 'i' : 18, 'o' : 19, 'p' : 20 
         }
         
         self.current_valve = None  # Track currently open valve
@@ -22,7 +22,7 @@ class KeyboardValveController(Node):
         # Create publisher
         self.control_publisher = self.create_publisher(String, 'control_valve', 10)
 
-        self.get_logger().info('Press keys 1-0 and qwerty to control valves. Press Ctrl+C to exit.')
+        self.get_logger().info('Press keys 1-0 and qwertyuiop to control valves. Press Ctrl+C to exit.')
         self.listen_for_keys()
 
     def listen_for_keys(self):
