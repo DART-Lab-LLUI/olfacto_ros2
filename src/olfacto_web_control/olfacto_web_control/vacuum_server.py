@@ -74,7 +74,7 @@ class OlfactometerController(Node):
             self.get_logger().info("Control phase active. Odor line flushed, control air on.")
 
             threading.Thread(
-                target=self._reset_after_delay,
+                target=self._control_phase_cleanup,
                 args=(duration,),
                 daemon=True
             ).start()
@@ -90,11 +90,9 @@ class OlfactometerController(Node):
         if self.current_valve == valve:
             self.close_valve(valve)
             self.current_valve = None
-        self.reset_mfcs()
 
-    def _reset_after_delay(self, delay):
+    def _control_phase_cleanup(self, delay):
         time.sleep(delay)
-        self.reset_mfcs()
 
     def switch_3way_valve(self, state_on: bool):
         msg = String()
