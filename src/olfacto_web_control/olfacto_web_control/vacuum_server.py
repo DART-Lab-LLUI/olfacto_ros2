@@ -30,7 +30,7 @@ class OlfactometerController(Node):
         # --- Preload settings ---
         self.preload_delay = 2.0
         self.control_preload_delay = 2.0
-        self.odr_boost_factor = 1.5
+        self.odr_boost_factor = 2.0
         self.ctrl_boost_factor = 1.2
         self.delay_time = 0.2
 
