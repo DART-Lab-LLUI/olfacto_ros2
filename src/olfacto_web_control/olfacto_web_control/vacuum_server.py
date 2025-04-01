@@ -124,7 +124,7 @@ def main(args=None):
     # Run FastAPI server in a separate thread
     api_thread = threading.Thread(
         target=uvicorn.run,
-        args=("olfacto_web_control.lorig_server:app",),
+        args=("olfacto_web_control.vacuum_server:app",),
         kwargs={"host": "0.0.0.0", "port": 8000, "log_level": "info"},
         daemon=True
     )
