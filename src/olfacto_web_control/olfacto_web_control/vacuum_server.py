@@ -22,6 +22,8 @@ class OlfactometerController(Node):
         self.valve_publisher = self.create_publisher(String, 'control_valve', 10)
         self.mfc0_publisher = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
         self.mfc1_publisher = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
+        self.mfc2_publisher = self.create_publisher(Float32, 'mfc2/set_flow_rate', 10)
+        self.valve_17_topic = 'control_valve'  # Using same topic, valve 17 = 3-way
         self.current_valve = None
         self.delay_time = 0.2
 
