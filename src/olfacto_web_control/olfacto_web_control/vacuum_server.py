@@ -62,7 +62,7 @@ class OlfactometerController(Node):
             self.current_valve = valve
             self.mfc0_publisher.publish(Float32(data=flow_mfc0_boost))
             self.mfc1_publisher.publish(Float32(data=flow_mfc1_boost))
-            #self.mfc2_publisher.publish(Float32(data=total_flow))
+            self.mfc2_publisher.publish(Float32(data=total_flow))
 
             self.get_logger().info(f"Preloading odor from valve {valve} for {self.preload_delay}s "
                                    f"with boosted flow (MFC0={flow_mfc0_boost}, MFC1={flow_mfc1_boost})")
@@ -74,10 +74,12 @@ class OlfactometerController(Node):
             ).start()
         else:
             # --- CONTROL PRELOAD WITH BOOST ---
+            flow_mfc0 = total_flow * ratio
+            flow_mfc1 = total_flow * (1 - ratio)
             boosted_total = total_flow * self.ctrl_boost_factor
 
-            #self.mfc0_publisher.publish(Float32(data=0.0))
-            #self.mfc1_publisher.publish(Float32(data=boosted_total))  # flush odor line
+            self.mfc0_publisher.publish(Float32(data=flow_mfc0))
+            self.mfc1_publisher.publish(Float32(data=flow_mfc1))  # flush odor line
             self.mfc2_publisher.publish(Float32(data=boosted_total))  # control line preload
 
             self.get_logger().info(f"Preloading control line for {self.control_preload_delay}s "
