@@ -31,7 +31,7 @@ class OlfactometerController(Node):
         self.preload_delay = 2.0
         self.control_preload_delay = 2.0
         self.odr_boost_factor = 1.5
-        self.ctrl_boost_factor = 1.5
+        self.ctrl_boost_factor = 1.2
         self.delay_time = 0.2
 
         self.get_logger().info("Vacuum olfactometer controller with preload boost initialized.")
@@ -46,11 +46,6 @@ class OlfactometerController(Node):
         if not (0.0 <= total_flow <= 20.0):
             self.get_logger().error("Invalid flow.")
             return {"status": "error", "message": "Total flow must be between 0–20 LPM"}
-
-        # Close previous valve if needed
-        #if self.current_valve and self.current_valve != valve:
-        #    self.close_valve(self.current_valve)
-        #    time.sleep(self.delay_time)
 
         if valve != 0:
             # --- ODOR PRELOAD WITH BOOST ---
