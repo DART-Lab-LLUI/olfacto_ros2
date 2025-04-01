@@ -121,7 +121,7 @@ def stimulus_endpoint(req: StimulusRequest):
 def main(args=None):
     rclpy.init(args=args)
     ros_node = OlfactometerController()
-    app.state.ros_node = ros_node  # 👈 Make ROS node available to FastAPI
+    app.state.ros_node = ros_node
 
     # Run FastAPI server in a separate thread
     api_thread = threading.Thread(
