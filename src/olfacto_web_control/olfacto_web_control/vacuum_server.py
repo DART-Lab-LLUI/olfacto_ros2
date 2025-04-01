@@ -28,8 +28,8 @@ class OlfactometerController(Node):
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
     def trigger_stimulus(self, valve, ratio, duration, total_flow):
-        if valve < 1 or valve > 16:
-            self.get_logger().error("Invalid valve number.")
+        if not (0 <= valve <= 16):
+            self.get_logger().error("Invalid valve number. Must be 0 (no valve) or 1–16.")
             return {"status": "error", "message": "Invalid valve number"}
         if not (0.0 <= ratio <= 1.0):
             self.get_logger().error("Invalid ratio.")
@@ -40,27 +40,51 @@ class OlfactometerController(Node):
 
         flow_mfc0 = total_flow * ratio
         flow_mfc1 = total_flow * (1 - ratio)
+        flow_mfc2 = total_flow
 
-        self.open_valve(valve)
+        # Close previously open odor valve if different
         if self.current_valve is not None and self.current_valve != valve:
-            time.sleep(self.delay_time)
             self.close_valve(self.current_valve)
-        self.current_valve = valve
+            time.sleep(self.delay_time)
 
+        if valve != 0:
+            # Odor stimulus
+            self.switch_3way_valve(True)  # ON = route to stimulus line
+            self.open_valve(valve)
+            self.current_valve = valve
+            self.get_logger().info(f"Stimulus ON: valve {valve}")
+        else:
+            # Clean control air
+            self.switch_3way_valve(False)  # OFF = route to control line
+            self.get_logger().info("Control phase (no odor valve)")
+            self.current_valve = None
+
+        # Always publish flows
         self.mfc0_publisher.publish(Float32(data=flow_mfc0))
         self.mfc1_publisher.publish(Float32(data=flow_mfc1))
-        self.get_logger().info(f"Set MFC0 to {flow_mfc0} LPM, MFC1 to {flow_mfc1} LPM")
+        self.mfc2_publisher.publish(Float32(data=flow_mfc2))
+        self.get_logger().info(f"MFC0={flow_mfc0} | MFC1={flow_mfc1} | MFC2={flow_mfc2}")
 
         threading.Thread(target=self._close_after_delay, args=(valve, duration), daemon=True).start()
         return {"status": "success"}
 
+    def switch_3way_valve(self, state_on: bool):
+        """ Control valve 17 (3-way valve) to switch odor vs control air path """
+        msg = String()
+        msg.data = "17:ON" if state_on else "17:OFF"
+        self.valve_publisher.publish(msg)
+        self.get_logger().info(f"Switched 3-way valve to {'ODOR' if state_on else 'CONTROL'}")
+
 
     def _close_after_delay(self, valve, delay):
         time.sleep(delay)
-        if self.current_valve == valve:
+        if self.current_valve == valve and valve != 0:
             self.close_valve(valve)
+            self.get_logger().info(f"Stimulus valve {valve} closed after {delay}s")
             self.current_valve = None
-            self.reset_mfcs()
+        self.reset_mfcs()
+
+
 
     def close_valve(self, valve_number):
         msg = String()
@@ -77,7 +101,9 @@ class OlfactometerController(Node):
     def reset_mfcs(self):
         self.mfc0_publisher.publish(Float32(data=0.0))
         self.mfc1_publisher.publish(Float32(data=0.0))
-        self.get_logger().info("Reset MFCs to 0 LPM")
+        self.mfc2_publisher.publish(Float32(data=0.0))
+        self.get_logger().info("Reset all MFCs to 0 LPM")
+
 
 # --- FastAPI App ---
 app = FastAPI()
