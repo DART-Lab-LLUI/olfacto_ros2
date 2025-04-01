@@ -107,18 +107,19 @@ class OlfactometerController(Node):
 
 # --- FastAPI App ---
 app = FastAPI()
-ros_node = None  # We'll assign the ROS node after init
 
 @app.post("/stimulus")
 def stimulus_endpoint(req: StimulusRequest):
+    ros_node = app.state.ros_node
     return ros_node.trigger_stimulus(req.valve, req.ratio, req.duration, req.total_flow)
+
 
 
 # --- Main entry point ---
 def main(args=None):
-    global ros_node
     rclpy.init(args=args)
     ros_node = OlfactometerController()
+    app.state.ros_node = ros_node  # 👈 Make ROS node available to FastAPI
 
     # Run FastAPI server in a separate thread
     api_thread = threading.Thread(
