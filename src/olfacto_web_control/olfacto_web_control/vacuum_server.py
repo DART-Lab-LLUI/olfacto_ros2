@@ -27,7 +27,7 @@ class OlfactometerController(Node):
         self.mfc2_publisher = self.create_publisher(Float32, 'mfc2/set_flow_rate', 10)
         self.current_valve = None
         self.delay_time = 0.2
-        self.preload_delay = 1.0  # seconds before switching 3-way valve
+        self.preload_delay = 2.0  # seconds before switching 3-way valve
 
         self.get_logger().info("Vacuum olfactometer controller initialized.")
 
