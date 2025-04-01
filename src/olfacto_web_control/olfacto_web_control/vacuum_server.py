@@ -48,9 +48,9 @@ class OlfactometerController(Node):
             return {"status": "error", "message": "Total flow must be between 0–20 LPM"}
 
         # Close previous valve if needed
-        if self.current_valve and self.current_valve != valve:
-            self.close_valve(self.current_valve)
-            time.sleep(self.delay_time)
+        #if self.current_valve and self.current_valve != valve:
+        #    self.close_valve(self.current_valve)
+        #    time.sleep(self.delay_time)
 
         if valve != 0:
             # --- ODOR PRELOAD WITH BOOST ---
