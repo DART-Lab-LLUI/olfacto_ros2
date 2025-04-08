@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 This experiment was created using PsychoPy3 Experiment Builder (v2024.2.5),
-    on Tue 08 Apr 2025 04:55:10 PM CEST
+    on Tue 08 Apr 2025 05:13:32 PM CEST
 If you publish work using this script the most relevant publication is:
 
     Peirce J, Gray JR, Simpson S, MacAskill M, Höchenberger R, Sogo H, Kastman E, Lindeløv JK. (2019) 
@@ -35,7 +35,10 @@ from psychopy.hardware import keyboard
 
 # Run 'Before Experiment' code from select_csv
 import os
-from psychopy import gui
+from psychopy import gui, visual, core
+import csv
+import requests
+
 # --- Setup global variables (available in all functions) ---
 # create a device manager to handle hardware (keyboards, mice, mirophones, speakers, etc.)
 deviceManager = hardware.DeviceManager()
@@ -415,18 +418,28 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     continueRoutine = True
     # update component parameters for each repeat
     # Run 'Begin Routine' code from select_csv
-    schedule_dir = "/home/tpmint/Documents/olfacto_ros2/scripts/programs"  # Folder where your CSV files are
-    files = [f for f in os.listdir(schedule_dir) if f.endswith(".csv")]
+    program_dir = "/home/tpmint/Documents/olfacto_ros2/scripts/programs"  # Folder where your CSV files are
+    files = [f for f in os.listdir(program_dir) if f.endswith(".csv")]
     
     # Show a dialog with list of files
-    dlg = gui.Dlg(title="Choose Schedule")
-    dlg.addField('Schedule:', choices=files)
+    dlg = gui.Dlg(title="Choose Program")
+    dlg.addField('Program:', choices=files)
     if dlg.show() is None:
         core.quit()
     
-    selected_file = os.path.join(schedule_dir, dlg.data[0])
-    # Save for use in the next routine
-    thisExp.addData('SelectedSchedule', dlg.data[0])
+    selected_file = os.path.join(program_dir, dlg.data[0])
+    program = []
+    with open(selected_file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            program.append({
+                "valve": int(row['Valve']),
+                "ratio": float(row['ratio']),
+                "duration": float(row['duration']),
+                "total_flow": float(row['total_flow'])
+            })
+    
+    thisExp.addData('SelectedProgram', dlg.data[0])
     
     # store start times for program_select
     program_select.tStartRefresh = win.getFutureFlipTime(clock=globalClock)
@@ -514,6 +527,10 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     mri_trigger.keys = []
     mri_trigger.rt = []
     _mri_trigger_allKeys = []
+    # Run 'Begin Routine' code from code
+    msg_wait = visual.TextStim(win, text="Waiting for trigger...")
+    msg_trigger = visual.TextStim(win, text="TRIGGER RECEIVED")
+    
     # store start times for wait_for_trigger
     wait_for_trigger.tStartRefresh = win.getFutureFlipTime(clock=globalClock)
     wait_for_trigger.tStart = globalClock.getTime(format='float')
@@ -588,6 +605,9 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
         # Run 'Each Frame' code from code
         if mri_trigger.keys:
             print("TRIGGER RECEIVED!")
+            msg_trigger.draw()
+        else:
+            msg_wait.draw()
         
         # check for quit (typically the Esc key)
         if defaultKeyboard.getKeys(keyList=["escape"]):
@@ -654,30 +674,21 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     continueRoutine = True
     # update component parameters for each repeat
     # Run 'Begin Routine' code from Program
-    import csv, requests
-    
     print("run_program routine started")
     pi_address = "http://olfactopi.local:8000/stimulus"
     
     try:
-        with open(selected_file, newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                valve = int(row['Valve'])
-                ratio = float(row['ratio'])
-                duration = float(row['duration'])
-                total_flow = float(row['total_flow'])
+        for row in program:
+            payload = {
+                "valve": row['valve'],
+                "ratio": row['ratio'],
+                "duration": row['duration'],
+                "total_flow": row['total_flow']
+            }
+            print(f"Sending: {payload}")
+            response = requests.post("http://olfactopi.local:8000/stimulus", json=payload)
+            core.wait(row['duration'])
     
-                payload = {
-                    "valve": valve,
-                    "ratio": ratio,
-                    "duration": duration,
-                    "total_flow": total_flow
-                }
-    
-                print(f"Sending: {payload}")
-                response = requests.post(pi_address, json=payload)
-                core.wait(duration)
     except Exception as e:
         print(f"Error running odor schedule: {e}")
     
