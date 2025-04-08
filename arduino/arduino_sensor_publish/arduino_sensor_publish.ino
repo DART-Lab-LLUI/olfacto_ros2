@@ -50,10 +50,10 @@ void loop() {
     float coldJunction2 = mcp2.readAmbient();
 
     // Humidity calculation
-    int sensorValue = analogRead(HUMIDITY_PIN);     // Read the analog voltage from the humidity sensor
-    float voltage = sensorValue * (5.04 / 1023.0);     // Convert the analog reading (0-1023) to a voltage (0-5V)
-    float raw_rh = (voltage - (0.16 * 5.04)) / (0.0062 * 5.04);     // Calculate the relative humidity (RH) using the calibration formula
-    float true_rh = raw_rh / (1.0546 - (0.00216 * temperature));    // temperature correction
+    //int sensorValue = analogRead(HUMIDITY_PIN);     // Read the analog voltage from the humidity sensor
+    //float voltage = sensorValue * (5.04 / 1023.0);     // Convert the analog reading (0-1023) to a voltage (0-5V)
+    //float raw_rh = (voltage - (0.16 * 5.04)) / (0.0062 * 5.04);     // Calculate the relative humidity (RH) using the calibration formula
+    //float true_rh = raw_rh / (1.0546 - (0.00216 * temperature));    // temperature correction
 
     // Print data in CSV format
     Serial.print(timestamp); Serial.print(",");
@@ -61,8 +61,8 @@ void loop() {
     Serial.print(coldJunction1); Serial.print(",");
     Serial.print(hotJunction2); Serial.print(",");
     Serial.print(coldJunction2); Serial.print(",");
-    Serial.print(true_rh);
+    Serial.print(00.00);
     Serial.println();
 
-    delay(1);  // Maximize sampling rate
+    delay(10);  // Maximize sampling rate
 }
