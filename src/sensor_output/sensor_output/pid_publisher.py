@@ -9,17 +9,14 @@ class PIDPublisher(Node):
         super().__init__('pid_publisher')
         self.publisher = self.create_publisher(UInt16, '/pid_output', 10)
 
-        # Connect to Teensy via USB serial
-        self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
-
-        # Buffer for downsampling
+        # Serial connection
+        self.ser = serial.Serial('/dev/ttyACM0', 500000, timeout=0.01)
         self.buffer = []
+        self.samples_per_publish = 10
 
-        # Read serial frequently (every 0.2 ms)
-        self.create_timer(0.0002, self.read_serial)
-
-        # Publish every 1 ms (1 kHz)
-        self.create_timer(0.001, self.publish_average)
+        # Timers
+        self.create_timer(0.0002, self.read_serial)  # fast polling
+        self.create_timer(0.001, self.publish_average)  # try to publish at 1 kHz
 
     def read_serial(self):
         while self.ser.in_waiting >= 2:
@@ -29,9 +26,9 @@ class PIDPublisher(Node):
                 self.buffer.append(sample)
 
     def publish_average(self):
-        if self.buffer:
-            avg_val = int(sum(self.buffer) / len(self.buffer))
-            self.buffer.clear()
+        if len(self.buffer) >= self.samples_per_publish:
+            avg_val = int(sum(self.buffer[:self.samples_per_publish]) / self.samples_per_publish)
+            del self.buffer[:self.samples_per_publish]
 
             msg = UInt16()
             msg.data = avg_val
