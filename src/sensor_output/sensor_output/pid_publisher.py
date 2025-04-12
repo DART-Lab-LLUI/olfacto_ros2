@@ -14,7 +14,7 @@ class PIDPublisher(Node):
 
         # Downsampling parameters
         self.buffer = []
-        self.samples_per_publish = 10  # Average 10 samples for 1 kHz publish
+        self.samples_per_publish = 20  # Average 20 samples for 500 Hz publish
 
         # Call self.read_serial() every 0.5 ms
         self.create_timer(0.0005, self.read_serial)
