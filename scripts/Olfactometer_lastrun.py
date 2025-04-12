@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 This experiment was created using PsychoPy3 Experiment Builder (v2024.2.5),
-    on Tue 08 Apr 2025 05:13:32 PM CEST
+    on Thu 10 Apr 2025 03:19:10 PM CEST
 If you publish work using this script the most relevant publication is:
 
     Peirce J, Gray JR, Simpson S, MacAskill M, Höchenberger R, Sogo H, Kastman E, Lindeløv JK. (2019) 
@@ -528,9 +528,8 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     mri_trigger.rt = []
     _mri_trigger_allKeys = []
     # Run 'Begin Routine' code from code
-    msg_wait = visual.TextStim(win, text="Waiting for trigger...")
-    msg_trigger = visual.TextStim(win, text="TRIGGER RECEIVED")
-    
+    msg_wait = visual.TextStim(win, text="Waiting for trigger...", height=0.05)
+    msg_trigger = visual.TextStim(win, text="TRIGGER RECEIVED", height=0.05)
     # store start times for wait_for_trigger
     wait_for_trigger.tStartRefresh = win.getFutureFlipTime(clock=globalClock)
     wait_for_trigger.tStart = globalClock.getTime(format='float')
@@ -553,7 +552,7 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     
     # --- Run Routine "wait_for_trigger" ---
     wait_for_trigger.forceEnded = routineForceEnded = not continueRoutine
-    while continueRoutine and routineTimer.getTime() < 9999.0:
+    while continueRoutine:
         # get current time
         t = routineTimer.getTime()
         tThisFlip = win.getFutureFlipTime(clock=routineTimer)
@@ -579,20 +578,6 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
             waitOnFlip = True
             win.callOnFlip(mri_trigger.clock.reset)  # t=0 on next screen flip
             win.callOnFlip(mri_trigger.clearEvents, eventType='keyboard')  # clear events on next screen flip
-        
-        # if mri_trigger is stopping this frame...
-        if mri_trigger.status == STARTED:
-            # is it time to stop? (based on global clock, using actual start)
-            if tThisFlipGlobal > mri_trigger.tStartRefresh + 9999-frameTolerance:
-                # keep track of stop time/frame for later
-                mri_trigger.tStop = t  # not accounting for scr refresh
-                mri_trigger.tStopRefresh = tThisFlipGlobal  # on global time
-                mri_trigger.frameNStop = frameN  # exact frame index
-                # add timestamp to datafile
-                thisExp.timestampOnFlip(win, 'mri_trigger.stopped')
-                # update status
-                mri_trigger.status = FINISHED
-                mri_trigger.status = FINISHED
         if mri_trigger.status == STARTED and not waitOnFlip:
             theseKeys = mri_trigger.getKeys(keyList=['y','5','t'], ignoreKeys=["escape"], waitRelease=False)
             _mri_trigger_allKeys.extend(theseKeys)
@@ -603,11 +588,14 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
                 # a response ends the routine
                 continueRoutine = False
         # Run 'Each Frame' code from code
-        if mri_trigger.keys:
-            print("TRIGGER RECEIVED!")
+        keys = event.getKeys()
+        if 't' in keys:
             msg_trigger.draw()
+            win.flip()
+            continueRoutine = False
         else:
             msg_wait.draw()
+        
         
         # check for quit (typically the Esc key)
         if defaultKeyboard.getKeys(keyList=["escape"]):
@@ -655,14 +643,11 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     if mri_trigger.keys != None:  # we had a response
         thisExp.addData('mri_trigger.rt', mri_trigger.rt)
         thisExp.addData('mri_trigger.duration', mri_trigger.duration)
-    # using non-slip timing so subtract the expected duration of this Routine (unless ended on request)
-    if wait_for_trigger.maxDurationReached:
-        routineTimer.addTime(-wait_for_trigger.maxDuration)
-    elif wait_for_trigger.forceEnded:
-        routineTimer.reset()
-    else:
-        routineTimer.addTime(-9999.000000)
+    # Run 'End Routine' code from code
+    msg_trigger.draw()
     thisExp.nextEntry()
+    # the Routine "wait_for_trigger" was not non-slip safe, so reset the non-slip timer
+    routineTimer.reset()
     
     # --- Prepare to start Routine "run_program" ---
     # create an object to store info about Routine run_program
@@ -675,6 +660,10 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
     # update component parameters for each repeat
     # Run 'Begin Routine' code from Program
     print("run_program routine started")
+    win.flip()
+    msg_running = visual.TextStim(win, text="Program running...", height=0.05)
+    msg_running.draw()
+    win.flip()
     pi_address = "http://olfactopi.local:8000/stimulus"
     
     try:
@@ -685,6 +674,10 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
                 "duration": row['duration'],
                 "total_flow": row['total_flow']
             }
+            msg_running.text = f"Sending:\nValve {payload['valve']}, Ratio {payload['ratio']}, Duration {payload['duration']}, Flow {payload['total_flow']}"
+            msg_running.draw()
+            win.flip()
+    
             print(f"Sending: {payload}")
             response = requests.post("http://olfactopi.local:8000/stimulus", json=payload)
             core.wait(row['duration'])
@@ -721,6 +714,8 @@ def run(expInfo, thisExp, win, globalClock=None, thisSession=None):
         tThisFlipGlobal = win.getFutureFlipTime(clock=None)
         frameN = frameN + 1  # number of completed frames (so 0 is the first frame)
         # update/draw components on each frame
+        # Run 'Each Frame' code from Program
+        msg_running.draw()
         
         # check for quit (typically the Esc key)
         if defaultKeyboard.getKeys(keyList=["escape"]):

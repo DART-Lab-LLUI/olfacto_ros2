@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'sensor_publisher = sensor_output.sensor_publisher:main',
+            'pid_publisher = sensor_output.pid_publisher:main'
         ],
     },
 )

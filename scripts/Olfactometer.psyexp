@@ -147,7 +147,7 @@
         <Param val="time (s)" valType="str" updates="None" name="startType"/>
         <Param val="0.0" valType="code" updates="None" name="startVal"/>
         <Param val="duration (s)" valType="str" updates="None" name="stopType"/>
-        <Param val="9999" valType="code" updates="constant" name="stopVal"/>
+        <Param val="" valType="code" updates="constant" name="stopVal"/>
         <Param val="last key" valType="str" updates="constant" name="store"/>
         <Param val="False" valType="bool" updates="constant" name="storeCorrect"/>
         <Param val="True" valType="bool" updates="constant" name="syncScreenRefresh"/>
@@ -157,15 +157,15 @@
         <Param val="" valType="extendedCode" updates="constant" name="Before JS Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="Begin Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
-        <Param val="msg_wait = new visual.TextStim(psychoJS.window, {&quot;text&quot;: &quot;Waiting for trigger...&quot;});&amp;#10;msg_trigger = new visual.TextStim(psychoJS.window, {&quot;text&quot;: &quot;TRIGGER RECEIVED&quot;});&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Routine"/>
-        <Param val="msg_wait = visual.TextStim(win, text=&quot;Waiting for trigger...&quot;)&amp;#10;msg_trigger = visual.TextStim(win, text=&quot;TRIGGER RECEIVED&quot;)&amp;#10;" valType="extendedCode" updates="constant" name="Begin Routine"/>
+        <Param val="msg_wait = new visual.TextStim(psychoJS.window, {&quot;text&quot;: &quot;Waiting for trigger...&quot;, &quot;height&quot;: 0.05});&amp;#10;msg_trigger = new visual.TextStim(psychoJS.window, {&quot;text&quot;: &quot;TRIGGER RECEIVED&quot;, &quot;height&quot;: 0.05});&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Routine"/>
+        <Param val="msg_wait = visual.TextStim(win, text=&quot;Waiting for trigger...&quot;, height=0.05)&amp;#10;msg_trigger = visual.TextStim(win, text=&quot;TRIGGER RECEIVED&quot;, height=0.05)" valType="extendedCode" updates="constant" name="Begin Routine"/>
         <Param val="Auto-&gt;JS" valType="str" updates="None" name="Code Type"/>
-        <Param val="if mri_trigger.keys:&amp;#10;    print(&quot;TRIGGER RECEIVED!&quot;)&amp;#10;    msg_trigger.draw()&amp;#10;else:&amp;#10;    msg_wait.draw()" valType="extendedCode" updates="constant" name="Each Frame"/>
-        <Param val="if (mri_trigger.keys) {&amp;#10;    console.log(&quot;TRIGGER RECEIVED!&quot;);&amp;#10;    msg_trigger.draw();&amp;#10;} else {&amp;#10;    msg_wait.draw();&amp;#10;}&amp;#10;" valType="extendedCode" updates="constant" name="Each JS Frame"/>
+        <Param val="keys = event.getKeys()&amp;#10;if 't' in keys:&amp;#10;    msg_trigger.draw()&amp;#10;    win.flip()&amp;#10;    continueRoutine = False&amp;#10;else:&amp;#10;    msg_wait.draw()&amp;#10;" valType="extendedCode" updates="constant" name="Each Frame"/>
+        <Param val="var _pj;&amp;#10;function _pj_snippets(container) {&amp;#10;    function in_es6(left, right) {&amp;#10;        if (((right instanceof Array) || ((typeof right) === &quot;string&quot;))) {&amp;#10;            return (right.indexOf(left) &gt; (- 1));&amp;#10;        } else {&amp;#10;            if (((right instanceof Map) || (right instanceof Set) || (right instanceof WeakMap) || (right instanceof WeakSet))) {&amp;#10;                return right.has(left);&amp;#10;            } else {&amp;#10;                return (left in right);&amp;#10;            }&amp;#10;        }&amp;#10;    }&amp;#10;    container[&quot;in_es6&quot;] = in_es6;&amp;#10;    return container;&amp;#10;}&amp;#10;_pj = {};&amp;#10;_pj_snippets(_pj);&amp;#10;keys = psychoJS.eventManager.getKeys();&amp;#10;if (_pj.in_es6(&quot;t&quot;, keys)) {&amp;#10;    msg_trigger.draw();&amp;#10;    psychoJS.window.flip();&amp;#10;    continueRoutine = false;&amp;#10;} else {&amp;#10;    msg_wait.draw();&amp;#10;}&amp;#10;" valType="extendedCode" updates="constant" name="Each JS Frame"/>
         <Param val="" valType="extendedCode" updates="constant" name="End Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="End JS Experiment"/>
-        <Param val="" valType="extendedCode" updates="constant" name="End JS Routine"/>
-        <Param val="" valType="extendedCode" updates="constant" name="End Routine"/>
+        <Param val="msg_trigger.draw();&amp;#10;" valType="extendedCode" updates="constant" name="End JS Routine"/>
+        <Param val="msg_trigger.draw()" valType="extendedCode" updates="constant" name="End Routine"/>
         <Param val="False" valType="bool" updates="None" name="disabled"/>
         <Param val="code" valType="code" updates="None" name="name"/>
       </CodeComponent>
@@ -193,9 +193,9 @@
         <Param val="" valType="extendedCode" updates="constant" name="Begin Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="Begin JS Experiment"/>
         <Param val="console.log(&quot;run_program routine started&quot;);&amp;#10;pi_address = &quot;http://olfactopi.local:8000/stimulus&quot;;&amp;#10;try {&amp;#10;    for (var row, _pj_c = 0, _pj_a = program, _pj_b = _pj_a.length; (_pj_c &lt; _pj_b); _pj_c += 1) {&amp;#10;        row = _pj_a[_pj_c];&amp;#10;        payload = {&quot;valve&quot;: row[&quot;valve&quot;], &quot;ratio&quot;: row[&quot;ratio&quot;], &quot;duration&quot;: row[&quot;duration&quot;], &quot;total_flow&quot;: row[&quot;total_flow&quot;]};&amp;#10;        console.log(`Sending: ${payload}`);&amp;#10;        response = requests.post(&quot;http://olfactopi.local:8000/stimulus&quot;, {&quot;json&quot;: payload});&amp;#10;        core.wait(row[&quot;duration&quot;]);&amp;#10;    }&amp;#10;} catch(e) {&amp;#10;    console.log(`Error running odor schedule: ${e}`);&amp;#10;}&amp;#10;" valType="extendedCode" updates="constant" name="Begin JS Routine"/>
-        <Param val="print(&quot;run_program routine started&quot;)&amp;#10;pi_address = &quot;http://olfactopi.local:8000/stimulus&quot;&amp;#10;&amp;#10;try:&amp;#10;    for row in program:&amp;#10;        payload = {&amp;#10;            &quot;valve&quot;: row['valve'],&amp;#10;            &quot;ratio&quot;: row['ratio'],&amp;#10;            &quot;duration&quot;: row['duration'],&amp;#10;            &quot;total_flow&quot;: row['total_flow']&amp;#10;        }&amp;#10;        print(f&quot;Sending: {payload}&quot;)&amp;#10;        response = requests.post(&quot;http://olfactopi.local:8000/stimulus&quot;, json=payload)&amp;#10;        core.wait(row['duration'])&amp;#10;&amp;#10;except Exception as e:&amp;#10;    print(f&quot;Error running odor schedule: {e}&quot;)&amp;#10;" valType="extendedCode" updates="constant" name="Begin Routine"/>
+        <Param val="print(&quot;run_program routine started&quot;)&amp;#10;win.flip()&amp;#10;msg_running = visual.TextStim(win, text=&quot;Program running...&quot;, height=0.05)&amp;#10;msg_running.draw()&amp;#10;win.flip()&amp;#10;pi_address = &quot;http://olfactopi.local:8000/stimulus&quot;&amp;#10;&amp;#10;try:&amp;#10;    for row in program:&amp;#10;        payload = {&amp;#10;            &quot;valve&quot;: row['valve'],&amp;#10;            &quot;ratio&quot;: row['ratio'],&amp;#10;            &quot;duration&quot;: row['duration'],&amp;#10;            &quot;total_flow&quot;: row['total_flow']&amp;#10;        }&amp;#10;        msg_running.text = f&quot;Sending:\nValve {payload['valve']}, Ratio {payload['ratio']}, Duration {payload['duration']}, Flow {payload['total_flow']}&quot;&amp;#10;        msg_running.draw()&amp;#10;        win.flip()&amp;#10;&amp;#10;        print(f&quot;Sending: {payload}&quot;)&amp;#10;        response = requests.post(&quot;http://olfactopi.local:8000/stimulus&quot;, json=payload)&amp;#10;        core.wait(row['duration'])&amp;#10;&amp;#10;except Exception as e:&amp;#10;    print(f&quot;Error running odor schedule: {e}&quot;)&amp;#10;" valType="extendedCode" updates="constant" name="Begin Routine"/>
         <Param val="Py" valType="str" updates="None" name="Code Type"/>
-        <Param val="" valType="extendedCode" updates="constant" name="Each Frame"/>
+        <Param val="msg_running.draw()" valType="extendedCode" updates="constant" name="Each Frame"/>
         <Param val="" valType="extendedCode" updates="constant" name="Each JS Frame"/>
         <Param val="" valType="extendedCode" updates="constant" name="End Experiment"/>
         <Param val="" valType="extendedCode" updates="constant" name="End JS Experiment"/>
