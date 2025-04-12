@@ -10,7 +10,7 @@ class PIDPublisher(Node):
         self.publisher = self.create_publisher(UInt16, '/pid_output', 10)
 
         # Serial connection
-        self.ser = serial.Serial('/dev/ttyACM0', 500000, timeout=0.01)
+        self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
         self.buffer = []
         self.samples_per_publish = 10
 
