@@ -10,7 +10,7 @@ class PIDPublisher(Node):
         self.publisher = self.create_publisher(UInt16, '/pid_output', 10)
 
         # Connect to Teensy via USB serial
-        self.ser = serial.Serial('/dev/ttyACM0', 500000, timeout=0.01)
+        self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
 
         # Buffer for downsampling
         self.buffer = []
