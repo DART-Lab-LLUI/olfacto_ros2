@@ -142,9 +142,9 @@ class OlfactometerController(Node):
 
     def reset_mfcs(self):
         self.mfc0_publisher.publish(Float32(data=0.0))
-        self.mfc1_publisher.publish(Float32(data=0.0))
-        self.mfc2_publisher.publish(Float32(data=0.0))
-        self.get_logger().info("Reset all MFCs to 0 LPM")
+        self.mfc1_publisher.publish(Float32(data=4.0))
+        self.mfc2_publisher.publish(Float32(data=4.0))
+        self.get_logger().info("Reset MFC0 to 0 LPM and MFC1,MFC2 to 4 LPM")
 
 
 # --- FastAPI route ---
