@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import UInt16
+from std_msgs.msg import UInt16, UInt32MultiArray
 import serial
 import struct
 
@@ -14,7 +14,7 @@ class PIDPublisher(Node):
 
         # Downsampling parameters
         self.buffer = []
-        self.samples_per_publish = 20  # Average 20 samples for 500 Hz publish
+        self.samples_per_publish = 20
 
         # Call self.read_serial() every 0.5 ms
         self.create_timer(0.0005, self.read_serial)
@@ -26,13 +26,23 @@ class PIDPublisher(Node):
                 sample = struct.unpack('<H', raw)[0]
                 self.buffer.append(sample)
 
+#                if len(self.buffer) >= self.samples_per_publish:
+#                    avg_val = int(sum(self.buffer) / len(self.buffer))
+#                    self.buffer.clear()
+
+#                    msg = UInt16()
+#                    msg.data = avg_val
+#                    self.publisher.publish(msg)
+
                 if len(self.buffer) >= self.samples_per_publish:
                     avg_val = int(sum(self.buffer) / len(self.buffer))
                     self.buffer.clear()
 
-                    msg = UInt16()
-                    msg.data = avg_val
+                    timestamp = self.get_clock().now().nanoseconds
+                    msg = UInt32MultiArray()
+                    msg.data = [timestamp, avg_val]
                     self.publisher.publish(msg)
+
 
 def main(args=None):
     rclpy.init(args=args)

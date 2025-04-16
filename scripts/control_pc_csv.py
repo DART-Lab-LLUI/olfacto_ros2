@@ -4,7 +4,7 @@ import requests
 
 # Configuration
 PI_ADDRESS = "http://olfactopi.local:8000/stimulus"
-CSV_FILE = "programs/latency_flush.csv"
+CSV_FILE = "programs/flush.csv"
 
 def run_schedule():
     with open(CSV_FILE, newline='') as csvfile:
