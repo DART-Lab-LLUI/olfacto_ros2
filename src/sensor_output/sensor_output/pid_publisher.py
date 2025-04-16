@@ -7,7 +7,7 @@ import struct
 class PIDPublisher(Node):
     def __init__(self):
         super().__init__('pid_publisher')
-        self.publisher = self.create_publisher(UInt16, '/pid_output', 10)
+        self.publisher = self.create_publisher(UInt32MultiArray, '/pid_output', 10)
 
         # Setup serial connection to Teensy
         self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
