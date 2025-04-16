@@ -1,53 +1,58 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import UInt16, Float64MultiArray
+from std_msgs.msg import Float64MultiArray
 import serial
-import struct
+import threading
 
 class PIDPublisher(Node):
     def __init__(self):
         super().__init__('pid_publisher')
         self.publisher = self.create_publisher(Float64MultiArray, '/pid_output', 10)
 
-        # Setup serial connection to Teensy
-        self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
+        # Serial setup: match your Teensy port
+        self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0)
 
-        # Downsampling parameters
-        self.buffer = []
-        self.samples_per_publish = 20
-
-        # Call self.read_serial() every 0.5 ms
-        self.create_timer(0.0005, self.read_serial)
+        # Start a thread to continuously read serial data
+        self.serial_thread = threading.Thread(target=self.read_serial, daemon=True)
+        self.serial_thread.start()
 
     def read_serial(self):
-        while self.ser.in_waiting >= 2:
-            raw = self.ser.read(2)
-            if len(raw) == 2:
-                sample = struct.unpack('<H', raw)[0]
-                self.buffer.append(sample)
+        while rclpy.ok():
+            try:
+                line = self.ser.readline().decode().strip()
+                if not line:
+                    continue
 
-#                if len(self.buffer) >= self.samples_per_publish:
-#                    avg_val = int(sum(self.buffer) / len(self.buffer))
-#                    self.buffer.clear()
+                parts = line.split(",")
+                if len(parts) != 2:
+                    continue  # Skip malformed lines
 
-#                    msg = UInt16()
-#                    msg.data = avg_val
-#                    self.publisher.publish(msg)
+                teensy_time_us = int(parts[0])
+                value = int(parts[1])
 
-                if len(self.buffer) >= self.samples_per_publish:
-                    avg_val = int(sum(self.buffer) / len(self.buffer))
-                    self.buffer.clear()
+                ros_time = self.get_clock().now().nanoseconds * 1e-9  # seconds as float
+                teensy_time = teensy_time_us * 1e-6  # convert µs to seconds
 
-                    timestamp = self.get_clock().now().nanoseconds * 1e-9  # Convert to seconds (float)
-                    msg = Float64MultiArray()
-                    msg.data = [timestamp, float(avg_val)]  # use float for consistency
-                    self.publisher.publish(msg)
+                msg = Float64MultiArray()
+                msg.data = [ros_time, teensy_time, float(value)]
+                self.publisher.publish(msg)
 
+            except Exception as e:
+                self.get_logger().warn(f"Error reading serial: {e}")
+
+    def destroy_node(self):
+        if self.ser:
+            self.ser.close()
+        super().destroy_node()
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = PIDPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down PIDPublisher.")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
