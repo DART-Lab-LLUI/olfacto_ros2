@@ -1,13 +1,13 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import UInt16, UInt32MultiArray
+from std_msgs.msg import UInt16, Float64MultiArray
 import serial
 import struct
 
 class PIDPublisher(Node):
     def __init__(self):
         super().__init__('pid_publisher')
-        self.publisher = self.create_publisher(UInt32MultiArray, '/pid_output', 10)
+        self.publisher = self.create_publisher(Float64MultiArray, '/pid_output', 10)
 
         # Setup serial connection to Teensy
         self.ser = serial.Serial('/dev/ttyACM1', 500000, timeout=0.01)
@@ -38,10 +38,11 @@ class PIDPublisher(Node):
                     avg_val = int(sum(self.buffer) / len(self.buffer))
                     self.buffer.clear()
 
-                    timestamp = self.get_clock().now().nanoseconds
-                    msg = UInt32MultiArray()
-                    msg.data = [timestamp, avg_val]
+                    timestamp = self.get_clock().now().nanoseconds * 1e-9  # Convert to seconds (float)
+                    msg = Float64MultiArray()
+                    msg.data = [timestamp, float(avg_val)]  # use float for consistency
                     self.publisher.publish(msg)
+
 
 
 def main(args=None):
