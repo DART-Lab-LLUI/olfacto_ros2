@@ -51,6 +51,8 @@ class OlfactometerController(Node):
             self._open_valve(valve)
             boosted = total_flow * self.odr_boost
             self._set_flows(boosted * ratio, boosted * (1 - ratio), total_flow)
+            self.get_logger().info(f"Preloading odor from valve {valve} for {self.preload_delay}s "
+                                   f"with boosted flow (MFC0={boosted * ratio}, MFC1={boosted * (1 - ratio)})")
             time.sleep(self.preload_delay)
 
             # Deliver odor
@@ -63,6 +65,8 @@ class OlfactometerController(Node):
             # Control preload with slight boost
             boosted = total_flow * 1.2
             self._set_flows(total_flow * ratio, total_flow * (1 - ratio), boosted)
+            self.get_logger().info(f"Preloading control line for {self.control_preload_delay}s "
+                                   f"with boosted flow {boosted} LPM")
             time.sleep(self.preload_delay)
 
             # Deliver control air
