@@ -85,21 +85,6 @@ class OlfactometerController(Node):
         self.mfc1_pub.publish(Float32(data=mfc1))
         self.get_logger().info(f"Flow rates set to MFC0={mfc0}, MFC1={mfc1}")
 
-
-    def shutdown(self):
-        self.get_logger().info("Shutting down node. Closing valve and setting MFCs to 0.0")
-
-        if self.current_valve:
-            self._close_valve(self.current_valve)
-
-        # Try to publish final flow reset
-        try:
-            self._set_flows(0.0, 0.0)
-            time.sleep(0.1)  # Give time for the message to hit the wire
-        except Exception as e:
-            self.get_logger().warn(f"Could not publish shutdown flow reset: {e}")
-
-
 # --- FastAPI App ---
 app = FastAPI()
 
@@ -128,7 +113,11 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        node.shutdown()
+        node.get_logger().info("Shutting down. Closing last valve and set MFC's to 0.0")
+        if node.current_valve:
+            node._close_valve(node.current_valve)
+        node._set_flows(0.0, 0.0)
+
         node.destroy_node()
         rclpy.shutdown()
 
