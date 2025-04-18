@@ -143,6 +143,8 @@ def main(args=None):
         if node.current_valve:
             node._close_valve(node.current_valve)
         node._set_flows(0.0, 0.0, 0.0)
+
+        thread.join(timeout=1)
         node.destroy_node()
         rclpy.shutdown()
 
