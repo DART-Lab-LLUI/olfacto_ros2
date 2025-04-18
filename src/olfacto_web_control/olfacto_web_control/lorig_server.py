@@ -78,6 +78,7 @@ class OlfactometerController(Node):
         self.get_logger().info(f"Valve {valve} closed")
 
     def _set_flows(self, mfc0, mfc1):
+        self.get_logger().info(f"Flow rates set to MFC0={mfc0}, MFC1={mfc1}")
         self.mfc0_pub.publish(Float32(data=mfc0))
         self.mfc1_pub.publish(Float32(data=mfc1))
 
