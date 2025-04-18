@@ -64,7 +64,9 @@ class OlfactometerController(Node):
             flow_mfc2_deliver = total_flow
             self._switch_3way(True)
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
-            time.sleep(duration)
+            time.sleep(duration-self.preload_delay)
+            self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, total_flow * self.ctrl_boost)
+            time.sleep(self.preload_delay)
             self._close_valve(valve)
 
         else:
