@@ -57,7 +57,8 @@ class OlfactometerController(Node):
             self._open_valve(valve)
         else:
             self.get_logger().info("No valve selected (clean air flush)")
-
+        time.sleep(duration)
+        
         # Reset after stimulus
         if valve != 0 and self.current_valve == valve:
             self._close_valve(valve)
