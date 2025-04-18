@@ -49,7 +49,7 @@ class OlfactometerController(Node):
 
         # Close current valve if different
         if self.current_valve is not None and self.current_valve != valve:
-            self.close_valve(self.current_valve)
+            self._close_valve(self.current_valve)
             time.sleep(self.delay_time)
 
         # Open new valve if needed
