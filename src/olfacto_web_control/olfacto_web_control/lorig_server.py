@@ -19,75 +19,66 @@ class StimulusRequest(BaseModel):
 class OlfactometerController(Node):
     def __init__(self):
         super().__init__('olfactometer_controller_lorig')
-        self.valve_publisher = self.create_publisher(String, 'control_valve', 10)
-        self.mfc0_publisher = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
-        self.mfc1_publisher = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
+        self.valve_pub = self.create_publisher(String, 'control_valve', 10)
+        self.mfc0_pub = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
+        self.mfc1_pub = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
         self.current_valve = None
+        self.last_total_flow = 4.0
         self.delay_time = 0.2
 
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
     def trigger_stimulus(self, valve, ratio, duration, total_flow):
-        if not (0 <= valve <= 16):
-            self.get_logger().error("Invalid valve number. Must be 0 (no valve) or 1-16.")
-            return {"status": "error", "message": "Invalid valve number"}
-        if not (0.0 <= ratio <= 1.0):
-            self.get_logger().error("Invalid ratio.")
-            return {"status": "error", "message": "Invalid ratio"}
-        if total_flow < 0.0 or total_flow > 20.0:
-            self.get_logger().error("Invalid total flow rate.")
-            return {"status": "error", "message": "Total flow must be between 0.0 and 20.0 LPM"}
+        if valve < 0 or valve > 16 or not (0 <= ratio <= 1.0) or not (0.0 <= total_flow <= 20.0):
+            return {"status": "error", "message": "Invalid parameters."}
 
+        self.last_total_flow = total_flow  # Store for post-stimulus reset
+
+        thread = threading.Thread(
+            target=self._stimulus_sequence,
+            args=(valve, ratio, duration, total_flow),
+            daemon=True
+        )
+        thread.start()
+        return {"status": "started"}
+
+
+    def _stimulus_sequence(self, valve, ratio, duration, total_flow):
         flow_mfc0 = total_flow * ratio
         flow_mfc1 = total_flow * (1 - ratio)
 
-        # Close previously open valve if different
+        # Close current valve if different
         if self.current_valve is not None and self.current_valve != valve:
             self.close_valve(self.current_valve)
             time.sleep(self.delay_time)
 
-        # Open new valve (unless this is a non-odorant command with valve=0)
+        # Open new valve if needed
         if valve != 0:
-            self.open_valve(valve)
-            self.current_valve = valve
+            self._open_valve(valve)
         else:
             self.get_logger().info("No valve selected (clean air flush)")
-            self.current_valve = None
 
-        # Set MFC flow rates
-        self.mfc0_publisher.publish(Float32(data=flow_mfc0))
-        self.mfc1_publisher.publish(Float32(data=flow_mfc1))
-        self.get_logger().info(f"Set MFC0 to {flow_mfc0} LPM, MFC1 to {flow_mfc1} LPM")
+        # Reset after stimulus
+        if valve != 0 and self.current_valve == valve:
+            self._close_valve(valve)
 
-        threading.Thread(target=self._close_after_delay, args=(valve, duration), daemon=True).start()
-        return {"status": "success"}
+        self._set_flows(0.0, total_flow)
+        self.get_logger().info("Reset MFCs after stimulus.")
 
 
+    def _open_valve(self, valve):
+        self.valve_pub.publish(String(data=f"{valve}:ON"))
+        self.current_valve = valve
+        self.get_logger().info(f"Valve {valve} opened")
 
-    def _close_after_delay(self, valve, delay):
-        time.sleep(delay)
-        if self.current_valve == valve and valve != 0:
-            self.close_valve(valve)
-            self.current_valve = None
-        self.reset_mfcs()
+    def _close_valve(self, valve):
+        self.valve_pub.publish(String(data=f"{valve}:OFF"))
+        self.current_valve = None
+        self.get_logger().info(f"Valve {valve} closed")
 
-
-    def close_valve(self, valve_number):
-        msg = String()
-        msg.data = f"{valve_number}:OFF"
-        self.valve_publisher.publish(msg)
-        self.get_logger().info(f"Closed valve {valve_number}")
-
-    def open_valve(self, valve_number):
-        msg = String()
-        msg.data = f"{valve_number}:ON"
-        self.valve_publisher.publish(msg)
-        self.get_logger().info(f"Opened valve {valve_number}")
-
-    def reset_mfcs(self):
-        self.mfc0_publisher.publish(Float32(data=0.0))
-        self.mfc1_publisher.publish(Float32(data=4.0))
-        self.get_logger().info("Reset MFC0 to 0 LPM and MFC1 to 4 LPM")
+    def _set_flows(self, mfc0, mfc1):
+        self.mfc0_pub.publish(Float32(data=mfc0))
+        self.mfc1_pub.publish(Float32(data=mfc1))
 
 # --- FastAPI App ---
 app = FastAPI()
@@ -101,27 +92,27 @@ def stimulus_endpoint(req: StimulusRequest):
 # --- Main entry point ---
 def main(args=None):
     rclpy.init(args=args)
-    ros_node = OlfactometerController()
-    app.state.ros_node = ros_node
+    node = OlfactometerController()
+    app.state.ros_node = node
 
-    # Run FastAPI server in a separate thread
-    api_thread = threading.Thread(
+    thread = threading.Thread(
         target=uvicorn.run,
-        args=("olfacto_web_control.lorig_server:app",),
-        kwargs={"host": "0.0.0.0", "port": 8000, "log_level": "info"},
+        args=(app,),
+        kwargs={"host": "0.0.0.0", "port": 8000},
         daemon=True
     )
-    api_thread.start()
+    thread.start()
 
     try:
-        rclpy.spin(ros_node)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        ros_node.get_logger().info("Shutting down.")
+        pass
     finally:
-        if ros_node.current_valve is not None:
-            ros_node.close_valve(ros_node.current_valve)
-        ros_node.reset_mfcs()
-        ros_node.destroy_node()
+        node.get_logger().info("Shutting down. Closing last valve and set MFC's to 0.0")
+        if node.current_valve:
+            node._close_valve(node.current_valve)
+        node._set_flows(0.0, 0.0)
+        node.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
