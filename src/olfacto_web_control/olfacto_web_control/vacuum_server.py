@@ -56,8 +56,6 @@ class OlfactometerController(Node):
             flow_mfc2_preload = total_flow
             self._open_valve(valve)
             self._set_flows(flow_mfc0_preload, flow_mfc1_preload, flow_mfc2_preload)
-            self.get_logger().info(f"Preloading odor from valve {valve} for {self.preload_delay}s "
-                                   f"with boosted flow (MFC0={flow_mfc0_preload}, MFC1={flow_mfc1_preload}, MFC2={flow_mfc2_preload})")
             time.sleep(self.preload_delay)
 
             # Deliver odor
@@ -66,7 +64,6 @@ class OlfactometerController(Node):
             flow_mfc2_deliver = total_flow
             self._switch_3way(True)
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
-            self.get_logger().info(f"Set target flows: MFC0={flow_mfc0_deliver}, MFC1={flow_mfc1_deliver}, MFC2={flow_mfc2_deliver}")
             time.sleep(duration)
             self._close_valve(valve)
 
@@ -76,8 +73,6 @@ class OlfactometerController(Node):
             flow_mfc1_preload = total_flow * (1 - ratio)
             flow_mfc2_preload = total_flow * self.ctrl_boost
             self._set_flows(flow_mfc0_preload, flow_mfc1_preload, flow_mfc2_preload)
-            self.get_logger().info(f"Preloading control line for {self.preload_delay}s "
-                                   f"with boosted flow (MFC0={flow_mfc0_preload}, MFC1={flow_mfc1_preload}, MFC2={flow_mfc2_preload})")
             time.sleep(self.preload_delay)
 
             # Deliver control air
@@ -91,7 +86,6 @@ class OlfactometerController(Node):
         # Reset using last known total flow
         self._switch_3way(False)
         self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
-        self.get_logger().info(f"Reset MFC1 and MFC2 to last total flow: {self.last_total_flow} LPM")
 
 
     def _switch_3way(self, odor_on: bool):
@@ -114,6 +108,7 @@ class OlfactometerController(Node):
         self.mfc0_pub.publish(Float32(data=mfc0))
         self.mfc1_pub.publish(Float32(data=mfc1))
         self.mfc2_pub.publish(Float32(data=mfc2))
+        self.get_logger().info(f"Flow rates set to MFC0={mfc0}, MFC1={mfc1}, MFC2={mfc2}")
 
 # --- FastAPI route ---
 @app.post("/stimulus")
