@@ -11,8 +11,15 @@ void setup() {
 }
 
 void loop() {
-  if (micros() - lastMicros >= interval) {
+  uint32_t now = micros();
+  if (now - lastMicros >= interval) {
     lastMicros += interval;
+
+    // Handle drift by resetting lastMicros if the loop is delayed
+    if (now - lastMicros >= interval) {
+      lastMicros = now;
+    }
+
     int val = analogRead(A0);
 
     sum += val;

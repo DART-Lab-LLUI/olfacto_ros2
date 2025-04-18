@@ -14,168 +14,113 @@ class StimulusRequest(BaseModel):
     duration: float
     total_flow: float
 
-# --- FastAPI app ---
 app = FastAPI()
 
 # --- ROS Node Class ---
 class OlfactometerController(Node):
     def __init__(self):
-        super().__init__('olfactometer_controller_vacuum')
-        self.valve_publisher = self.create_publisher(String, 'control_valve', 10)
-        self.mfc0_publisher = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
-        self.mfc1_publisher = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
-        self.mfc2_publisher = self.create_publisher(Float32, 'mfc2/set_flow_rate', 10)
-        self.current_valve = None
+        super().__init__('olfactometer_controller')
+        self.valve_pub = self.create_publisher(String, 'control_valve', 10)
+        self.mfc0_pub = self.create_publisher(Float32, 'mfc0/set_flow_rate', 10)
+        self.mfc1_pub = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
+        self.mfc2_pub = self.create_publisher(Float32, 'mfc2/set_flow_rate', 10)
 
-        # --- Preload settings ---
         self.preload_delay = 2.0
-        self.control_preload_delay = 2.0
-        self.odr_boost_factor = 2.0
-        self.ctrl_boost_factor = 1.2
-        self.delay_time = 0.2
+        self.odr_boost = 2.0
+        self.last_total_flow = 4.0  # initialize with a sensible default
 
-        self.get_logger().info("Vacuum olfactometer controller with preload boost initialized.")
+        self.get_logger().info("Simplified olfactometer controller initialized.")
 
     def trigger_stimulus(self, valve, ratio, duration, total_flow):
-        if not (0 <= valve <= 16):
-            self.get_logger().error("Invalid valve number.")
-            return {"status": "error", "message": "Valve must be between 0–16"}
-        if not (0.0 <= ratio <= 1.0):
-            self.get_logger().error("Invalid ratio.")
-            return {"status": "error", "message": "Ratio must be between 0–1"}
-        if not (0.0 <= total_flow <= 20.0):
-            self.get_logger().error("Invalid flow.")
-            return {"status": "error", "message": "Total flow must be between 0–20 LPM"}
+        if valve < 0 or valve > 16 or not (0 <= ratio <= 1) or not (0 < total_flow <= 20):
+            return {"status": "error", "message": "Invalid parameters."}
 
+        self.last_total_flow = total_flow  # Store for post-stimulus reset
+
+        thread = threading.Thread(
+            target=self._stimulus_sequence,
+            args=(valve, ratio, duration, total_flow),
+            daemon=True
+        )
+        thread.start()
+        return {"status": "started"}
+
+    def _stimulus_sequence(self, valve, ratio, duration, total_flow):
         if valve != 0:
-            # --- ODOR PRELOAD WITH BOOST ---
-            boosted_total = total_flow * self.odr_boost_factor
-            flow_mfc0_boost = boosted_total * ratio
-            flow_mfc1_boost = boosted_total * (1 - ratio)
+            # Odor preload with boosted flow
+            self._open_valve(valve)
+            boosted = total_flow * self.odr_boost
+            self._set_flows(boosted * ratio, boosted * (1 - ratio), total_flow)
+            time.sleep(self.preload_delay)
 
-            self.open_valve(valve)
-            self.current_valve = valve
-            self.mfc0_publisher.publish(Float32(data=flow_mfc0_boost))
-            self.mfc1_publisher.publish(Float32(data=flow_mfc1_boost))
-            self.mfc2_publisher.publish(Float32(data=total_flow))
+            # Deliver odor
+            self._switch_3way(True)
+            self._set_flows(total_flow * ratio, total_flow * (1 - ratio), total_flow)
+            time.sleep(duration)
+            self._close_valve(valve)
 
-            self.get_logger().info(f"Preloading odor from valve {valve} for {self.preload_delay}s "
-                                   f"with boosted flow (MFC0={flow_mfc0_boost}, MFC1={flow_mfc1_boost})")
-
-            threading.Thread(
-                target=self._delayed_switch_and_stimulus,
-                args=(valve, ratio, duration, total_flow, self.preload_delay),
-                daemon=True
-            ).start()
         else:
-            # --- CONTROL PRELOAD WITH BOOST ---
-            flow_mfc0 = total_flow * ratio
-            flow_mfc1 = total_flow * (1 - ratio)
-            boosted_total = total_flow * self.ctrl_boost_factor
+            # Control preload with slight boost
+            boosted = total_flow * 1.2
+            self._set_flows(total_flow * ratio, total_flow * (1 - ratio), boosted)
+            time.sleep(self.preload_delay)
 
-            self.mfc0_publisher.publish(Float32(data=flow_mfc0))
-            self.mfc1_publisher.publish(Float32(data=flow_mfc1))  # flush odor line
-            self.mfc2_publisher.publish(Float32(data=boosted_total))  # control line preload
+            # Deliver control air
+            self._switch_3way(False)
+            self._set_flows(0.0, total_flow, total_flow)
+            time.sleep(duration)
 
-            self.get_logger().info(f"Preloading control line for {self.control_preload_delay}s "
-                                   f"with boosted flow {boosted_total} LPM")
+        # Reset using last known total flow
+        self._switch_3way(False)
+        self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
+        self.get_logger().info(f"Reset MFCs to last total flow: {self.last_total_flow} LPM")
 
-            threading.Thread(
-                target=self._delayed_control_switch,
-                args=(duration, total_flow, self.control_preload_delay),
-                daemon=True
-            ).start()
 
-        return {"status": "success"}
-
-    def _delayed_switch_and_stimulus(self, valve, ratio, duration, total_flow, preload_delay):
-        time.sleep(preload_delay)
-        self.switch_3way_valve(True)
-        self.get_logger().info("Switched 3-way valve to ODOR after preload")
-
-        # Restore target flows
-        flow_mfc0 = total_flow * ratio
-        flow_mfc1 = total_flow * (1 - ratio)
-
-        self.mfc0_publisher.publish(Float32(data=flow_mfc0))
-        self.mfc1_publisher.publish(Float32(data=flow_mfc1))
-        self.mfc2_publisher.publish(Float32(data=total_flow))
-
-        self.get_logger().info(f"Set target flows: MFC0={flow_mfc0}, MFC1={flow_mfc1}, MFC2={total_flow}")
-
-        time.sleep(duration)
-
-        if self.current_valve == valve:
-            self.close_valve(valve)
-            self.current_valve = None
-
-    def _delayed_control_switch(self, duration, total_flow, preload_delay):
-        time.sleep(preload_delay)
-        self.switch_3way_valve(False)
-        self.get_logger().info("Switched 3-way valve to CONTROL after preload")
-
-        # Restore target flows
-        self.mfc1_publisher.publish(Float32(data=total_flow))  # odor line flush
-        self.mfc2_publisher.publish(Float32(data=total_flow))  # control line
-
-        self.get_logger().info(f"Set target control flows: MFC1={total_flow}, MFC2={total_flow}")
-
-        time.sleep(duration)
-
-    def switch_3way_valve(self, state_on: bool):
+    def _switch_3way(self, odor_on: bool):
         msg = String()
-        msg.data = "17:ON" if state_on else "17:OFF"
-        self.valve_publisher.publish(msg)
-        self.get_logger().info(f"3-way valve set to {'ODOR' if state_on else 'CONTROL'}")
+        msg.data = "17:ON" if odor_on else "17:OFF"
+        self.valve_pub.publish(msg)
+        self.get_logger().info(f"3-way valve -> {'ODOR' if odor_on else 'CONTROL'}")
 
-    def close_valve(self, valve_number):
-        msg = String()
-        msg.data = f"{valve_number}:OFF"
-        self.valve_publisher.publish(msg)
-        self.get_logger().info(f"Closed valve {valve_number}")
+    def _open_valve(self, valve):
+        self.valve_pub.publish(String(data=f"{valve}:ON"))
+        self.get_logger().info(f"Valve {valve} opened")
 
-    def open_valve(self, valve_number):
-        msg = String()
-        msg.data = f"{valve_number}:ON"
-        self.valve_publisher.publish(msg)
-        self.get_logger().info(f"Opened valve {valve_number}")
+    def _close_valve(self, valve):
+        self.valve_pub.publish(String(data=f"{valve}:OFF"))
+        self.get_logger().info(f"Valve {valve} closed")
 
-    def reset_mfcs(self):
-        self.mfc0_publisher.publish(Float32(data=0.0))
-        self.mfc1_publisher.publish(Float32(data=4.0))
-        self.mfc2_publisher.publish(Float32(data=4.0))
-        self.get_logger().info("Reset MFC0 to 0 LPM and MFC1,MFC2 to 4 LPM")
-
+    def _set_flows(self, mfc0, mfc1, mfc2):
+        self.mfc0_pub.publish(Float32(data=mfc0))
+        self.mfc1_pub.publish(Float32(data=mfc1))
+        self.mfc2_pub.publish(Float32(data=mfc2))
 
 # --- FastAPI route ---
 @app.post("/stimulus")
 def stimulus_endpoint(req: StimulusRequest):
-    ros_node = app.state.ros_node
-    return ros_node.trigger_stimulus(req.valve, req.ratio, req.duration, req.total_flow)
+    return app.state.ros_node.trigger_stimulus(req.valve, req.ratio, req.duration, req.total_flow)
 
-# --- Main entry point ---
+# --- Main ---
 def main(args=None):
     rclpy.init(args=args)
-    ros_node = OlfactometerController()
-    app.state.ros_node = ros_node
+    node = OlfactometerController()
+    app.state.ros_node = node
 
-    api_thread = threading.Thread(
+    thread = threading.Thread(
         target=uvicorn.run,
-        args=("olfacto_web_control.vacuum_server:app",),
-        kwargs={"host": "0.0.0.0", "port": 8000, "log_level": "info"},
+        args=(app,),
+        kwargs={"host": "0.0.0.0", "port": 8000},
         daemon=True
     )
-    api_thread.start()
+    thread.start()
 
     try:
-        rclpy.spin(ros_node)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        ros_node.get_logger().info("Shutting down.")
+        pass
     finally:
-        if ros_node.current_valve:
-            ros_node.close_valve(ros_node.current_valve)
-        ros_node.reset_mfcs()
-        ros_node.destroy_node()
+        node.get_logger().info("Shutting down.")
+        node.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
