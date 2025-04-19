@@ -29,7 +29,8 @@ class OlfactometerController(Node):
 
         # Delay and boost parameters
         self.preload_delay = 2.0
-        self.odr_boost = 1.5
+        #self.boost_duration = 1.0
+        self.odr_boost = 2.0
         self.ctrl_boost = 2.0
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
