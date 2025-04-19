@@ -24,7 +24,7 @@ class OlfactometerController(Node):
         self.mfc1_pub = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
         self.current_valve = None
         self.last_total_flow = 4.0
-        self.delay_time = 0.1
+        self.delay_time = 0.0
 
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
