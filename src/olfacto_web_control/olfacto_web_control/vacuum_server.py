@@ -88,7 +88,10 @@ class OlfactometerController(Node):
             self._switch_3way(False)
             time.sleep(self.boost_duration)
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
-            time.sleep(duration-self.boost_duration)
+            if duration>self.boost_duration:
+                time.sleep(duration-self.boost_duration)
+            else:
+                time.sleep(duration)
 
         # Reset using last known total flow
         self._switch_3way(False)
