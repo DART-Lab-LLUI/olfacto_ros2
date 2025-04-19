@@ -70,10 +70,15 @@ class OlfactometerController(Node):
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
             time.sleep(duration-self.preload_delay-self.boost_duration)
             # start preload of control line
-            self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, total_flow * self.ctrl_boost)
+            self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, self.ctrl_boost)
             # finish rest of stimulus
             time.sleep(self.preload_delay)
             self._close_valve(valve)
+
+            # Reset using last known total flow
+            self._switch_3way(False)
+            time.sleep(self.boost_duration)
+            self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
 
         else:
             # Control preload with slight boost
@@ -95,13 +100,10 @@ class OlfactometerController(Node):
                 time.sleep(duration-self.boost_duration)
             else:
                 time.sleep(duration)
-            return
 
         # Reset using last known total flow
-        self._switch_3way(False)
-        time.sleep(self.boost_duration)
-        self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
-
+        #self._switch_3way(False)
+        #self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
 
     def _switch_3way(self, odor_on: bool):
         msg = String()
