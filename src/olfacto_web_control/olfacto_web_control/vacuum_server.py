@@ -27,11 +27,15 @@ class OlfactometerController(Node):
         self.current_valve = None
         self.last_total_flow = 4.0
 
-        # Delay and boost parameters
+        # Delay and boost parameters not flow restrictor
+        #self.preload_delay = 2.0
+        #self.boost_duration = 0.2
+        #self.odr_boost = 15.0
+        #self.ctrl_boost = 16.0
         self.preload_delay = 2.0
         self.boost_duration = 0.2
-        self.odr_boost = 15.0
-        self.ctrl_boost = 16.0
+        self.odr_boost = 8.0
+        self.ctrl_boost = 8.0
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
 
