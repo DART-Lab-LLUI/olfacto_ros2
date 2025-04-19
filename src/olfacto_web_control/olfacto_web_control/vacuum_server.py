@@ -32,10 +32,11 @@ class OlfactometerController(Node):
         #self.boost_duration = 0.2
         #self.odr_boost = 15.0
         #self.ctrl_boost = 16.0
+        #self.odor_multiplier = 1.05
         self.preload_delay = 2.0
-        self.boost_duration = 0.15
-        self.odr_boost = 10.0
-        self.ctrl_boost = 10.0
+        self.boost_duration = 0.4
+        self.odr_boost = 3.0
+        self.ctrl_boost = 3.0
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
 
@@ -57,9 +58,9 @@ class OlfactometerController(Node):
         if valve != 0:
             # Odor preload with boosted flow
             #flow_mfc0_preload = total_flow * self.odr_boost * ratio
-            flow_mfc0_preload = self.odr_boost * ratio
+            flow_mfc0_preload = (total_flow + self.odr_boost) * ratio
             #flow_mfc1_preload = total_flow * self.odr_boost * (1 - ratio)
-            flow_mfc1_preload = self.odr_boost * (1 - ratio)
+            flow_mfc1_preload = (total_flow + self.odr_boost) * (1 - ratio)
             flow_mfc2_preload = total_flow
             self._open_valve(valve)
             self._set_flows(flow_mfc0_preload, flow_mfc1_preload, flow_mfc2_preload)
@@ -74,7 +75,8 @@ class OlfactometerController(Node):
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
             time.sleep(duration-self.preload_delay-self.boost_duration)
             # start preload of control line
-            self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, self.ctrl_boost)
+            #self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, self.ctrl_boost)
+            self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, total_flow + self.ctrl_boost)
             # finish rest of stimulus
             time.sleep(self.preload_delay)
             self._close_valve(valve)
@@ -89,7 +91,7 @@ class OlfactometerController(Node):
             flow_mfc0_preload = total_flow * ratio
             flow_mfc1_preload = total_flow * (1 - ratio)
             #flow_mfc2_preload = total_flow * self.ctrl_boost
-            flow_mfc2_preload = self.ctrl_boost
+            flow_mfc2_preload = total_flow + self.ctrl_boost
             self._set_flows(flow_mfc0_preload, flow_mfc1_preload, flow_mfc2_preload)
             time.sleep(self.preload_delay)
 
