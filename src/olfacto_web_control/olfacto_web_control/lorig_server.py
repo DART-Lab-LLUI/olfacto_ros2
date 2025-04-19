@@ -24,7 +24,7 @@ class OlfactometerController(Node):
         self.mfc1_pub = self.create_publisher(Float32, 'mfc1/set_flow_rate', 10)
         self.current_valve = None
         self.last_total_flow = 4.0
-        self.delay_time = 0.2
+        self.delay_time = 0.1
 
         self.get_logger().info("Olfactometer Controller with HTTP interface initialized.")
 
@@ -52,18 +52,17 @@ class OlfactometerController(Node):
             self._close_valve(self.current_valve)
             time.sleep(self.delay_time)
 
+        # Set stimulus flow
+        self._set_flows(flow_mfc0, flow_mfc1)
+        time.sleep(self.delay_time)
         # Open new valve if needed
         if valve != 0:
             self._open_valve(valve)
         else:
             self.get_logger().info("No valve selected (clean air flush)")
 
-        # Set stimulus flow and sleep for duration
-        self._set_flows(flow_mfc0, flow_mfc1)
-        if duration > self.delay_time:
-            time.sleep(duration-self.delay_time)
-        else:
-            time.sleep(duration)
+        # Sleep for duration of stimulus
+        time.sleep(duration)
         
         # Reset after stimulus
         self._set_flows(0.0, total_flow)
