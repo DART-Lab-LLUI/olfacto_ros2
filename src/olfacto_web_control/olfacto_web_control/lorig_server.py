@@ -60,8 +60,11 @@ class OlfactometerController(Node):
 
         # Set stimulus flow and sleep for duration
         self._set_flows(flow_mfc0, flow_mfc1)
-        time.sleep(duration-self.delay_time)
-
+        if duration > self.delay_time:
+            time.sleep(duration-self.delay_time)
+        else:
+            time.sleep(duration)
+        
         # Reset after stimulus
         self._set_flows(0.0, total_flow)
         time.sleep(self.delay_time)
