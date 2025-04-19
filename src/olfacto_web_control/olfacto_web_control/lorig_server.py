@@ -60,14 +60,14 @@ class OlfactometerController(Node):
 
         # Set stimulus flow and sleep for duration
         self._set_flows(flow_mfc0, flow_mfc1)
-        time.sleep(duration)
+        time.sleep(duration-self.delay_time)
 
         # Reset after stimulus
+        self._set_flows(0.0, total_flow)
+        time.sleep(self.delay_time)
         if valve != 0 and self.current_valve == valve:
             self._close_valve(valve)
 
-        self._set_flows(0.0, total_flow)
-        self.get_logger().info("Reset MFCs after stimulus.")
 
 
     def _open_valve(self, valve):
