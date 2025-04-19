@@ -30,8 +30,8 @@ class OlfactometerController(Node):
         # Delay and boost parameters
         self.preload_delay = 2.0
         self.boost_duration = 0.5
-        self.odr_boost = 2.0
-        self.ctrl_boost = 2.0
+        self.odr_boost = 3.0
+        self.ctrl_boost = 3.0
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
 
@@ -86,8 +86,9 @@ class OlfactometerController(Node):
             flow_mfc1_deliver = total_flow
             flow_mfc2_deliver = total_flow
             self._switch_3way(False)
+            time.sleep(self.boost_duration)
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
-            time.sleep(duration)
+            time.sleep(duration-self.boost_duration)
 
         # Reset using last known total flow
         self._switch_3way(False)
