@@ -32,7 +32,7 @@ class OlfactometerController(Node):
         #self.boost_duration = 0.2
         #self.odr_boost = 15.0
         #self.ctrl_boost = 16.0
-        self.odor_multiplier = 1.1
+        self.odor_multiplier = 1.2 # Against leaks
         self.preload_delay = 2.0
         self.boost_duration = 0.6
         self.odr_boost = 10.0
