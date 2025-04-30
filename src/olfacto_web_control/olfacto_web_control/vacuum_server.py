@@ -35,7 +35,7 @@ class OlfactometerController(Node):
         self.odor_multiplier = 1.2 # Against leaks
         self.preload_delay = 2.0
         self.boost_duration = 0.6
-        self.odr_boost = 10.0
+        self.odr_boost = 14.0
         self.ctrl_boost = 10.0
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
