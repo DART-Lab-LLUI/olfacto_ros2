@@ -11,6 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     	('share/launch_files/launch_files', ['launch_files/start_valve_mfc.py']),
+            ('share/launch_files/launch_files', ['launch_files/start_olfactometer_vacuum.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
