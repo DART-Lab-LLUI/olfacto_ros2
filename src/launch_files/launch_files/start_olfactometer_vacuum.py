@@ -12,7 +12,7 @@ def generate_launch_description():
             package='valve_control',
             executable='valve_controller',
             name='valve_controller'
-        )
+        ),
         Node(
             package='olfacto_web_control',
             executable='vacuum_server',
