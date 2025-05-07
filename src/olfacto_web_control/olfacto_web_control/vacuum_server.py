@@ -28,15 +28,11 @@ class OlfactometerController(Node):
         self.last_total_flow = 4.0
 
         # Delay and boost parameters not flow restrictor
-        #self.preload_delay = 2.0
-        #self.boost_duration = 0.2
-        #self.odr_boost = 15.0
-        #self.ctrl_boost = 16.0
-        self.odor_multiplier = 1.2 # Against leaks
-        self.preload_delay = 2.0
-        self.boost_duration = 1.0
-        self.odr_boost = 14.0
-        self.ctrl_boost = 10.0
+        self.odor_multiplier = 1.2 # Boosted flowrate to ensure stable flow rate due to leaks
+        self.preload_delay = 2.0    # Preload duration of stimulus
+        self.boost_duration = 1.0   # Boosted flow rate duration after stimulus onset
+        self.odr_boost = 14.0       # Boosted flow rate of odor line before stimulus delivery (to ensure constant flow rate)
+        self.ctrl_boost = 10.0      # Boosted flow rate of control line before stimulus end (to ensure constant flow rate)
 
         self.get_logger().info("Simplified olfactometer controller initialized.")
 
@@ -55,11 +51,9 @@ class OlfactometerController(Node):
         return {"status": "started"}
 
     def _stimulus_sequence(self, valve, ratio, duration, total_flow):
-        if valve != 0:
+        if valve != 0:      # valve != 0 denotes odor
             # Odor preload with boosted flow
-            #flow_mfc0_preload = total_flow * self.odr_boost * ratio
             flow_mfc0_preload = self.odr_boost * ratio
-            #flow_mfc1_preload = total_flow * self.odr_boost * (1 - ratio)
             flow_mfc1_preload = self.odr_boost * (1 - ratio)
             flow_mfc2_preload = total_flow
             self._open_valve(valve)
@@ -75,7 +69,6 @@ class OlfactometerController(Node):
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, flow_mfc2_deliver)
             time.sleep(duration-self.preload_delay-self.boost_duration)
             # start preload of control line
-            #self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, self.ctrl_boost)
             self._set_flows(flow_mfc0_deliver, flow_mfc1_deliver, self.ctrl_boost)
             # finish rest of stimulus
             time.sleep(self.preload_delay)
@@ -83,14 +76,12 @@ class OlfactometerController(Node):
 
             # Reset using last known total flow
             self._switch_3way(False)
-            #time.sleep(self.boost_duration)
             self._set_flows(0.0, self.last_total_flow, self.last_total_flow)
 
-        else:
+        else:       # in case of control (valve 0)
             # Control preload with slight boost
             flow_mfc0_preload = total_flow * ratio
             flow_mfc1_preload = total_flow * (1 - ratio)
-            #flow_mfc2_preload = total_flow * self.ctrl_boost
             flow_mfc2_preload = self.ctrl_boost
             self._set_flows(flow_mfc0_preload, flow_mfc1_preload, flow_mfc2_preload)
             time.sleep(self.preload_delay)
